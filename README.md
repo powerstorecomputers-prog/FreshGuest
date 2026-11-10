@@ -1,11 +1,16 @@
 <p align="center">
-  <img src="logo/FreshGuest-Schriftzug-hell.png" alt="FreshGuest" width="420">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logo/FreshGuest-Schriftzug.png">
+    <img src="logo/FreshGuest-Schriftzug-hell.png" alt="FreshGuest" width="420">
+  </picture>
 </p>
 
 <p align="center"><b>A fresh, empty Windows account for every guest – for holiday flats, hotels, internet cafés and every PC that strangers use one after another.</b></p>
 
 <p align="center"><b>⚠️ Requires Windows 11 Pro.</b> Windows Home does not work.</p>
 
+> 🇬🇧 **English:** FreshGuest sets up a Windows PC for guests. On the sign-in screen guests just click “Sign in”; when they sign out or the PC restarts, Windows deletes everything they left behind. **Windows 11 Pro only** – it does not work with Windows Home. Fits holiday flats, hotels, internet cafés, libraries, waiting rooms and anywhere strangers use the same PC one after another. The full guide (DE/IT/EN) is built into the program and comes with every [release](../../releases).
+>
 > 🇩🇪 **Deutsch:** FreshGuest richtet einen Windows-PC für Feriengäste ein. Gäste klicken auf dem Anmeldebildschirm nur auf „Anmelden“; beim Abmelden oder Neustart löscht Windows alles, was der Gast hinterlassen hat. **Nur für Windows 11 Pro** – mit Windows Home funktioniert es nicht. Passt für Ferienwohnungen, Hotels, Internetcafés, Bibliotheken, Wartezimmer und überall, wo Fremde nacheinander am selben PC sitzen. Die ausführliche Anleitung (DE/IT/EN) steckt im Programm und liegt jedem [Release](../../releases) bei.
 >
 > 🇮🇹 **Italiano:** FreshGuest prepara un PC Windows per gli ospiti. Gli ospiti cliccano solo su «Accedi» nella schermata di accesso; alla disconnessione o al riavvio Windows cancella tutto ciò che hanno lasciato. **Solo per Windows 11 Pro** – con Windows Home non funziona. Adatto a case vacanze, hotel, internet café, biblioteche, sale d'attesa e ovunque persone diverse usino lo stesso PC una dopo l'altra. La guida completa (DE/IT/EN) è inclusa nel programma e in ogni [release](../../releases).
