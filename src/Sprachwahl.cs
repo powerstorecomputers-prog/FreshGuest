@@ -292,11 +292,11 @@ namespace GaesteSchutz
             foreach (string tag in langs)
             {
                 var b = new FlagButton(tag, ButtonName(tag, langs), string.Equals(tag, current, StringComparison.OrdinalIgnoreCase))
-                    { Location = new Point(16, by), Size = new Size(w - 32, 50) };
+                    { Location = new Point(16, by), Size = new Size(w - 32, FlagButton.HeightFor(w - 32)) };
                 string tg = tag;
                 if (!b.Current) b.Click += (o, e) => Request(f, tg, preview);
                 p.Controls.Add(b);
-                by += 58;
+                by += b.Height + 12;
             }
             p.Height = by + 8;
             return p;
@@ -369,6 +369,9 @@ namespace GaesteSchutz
             return gp;
         }
 
+        // Höhe eines Knopfs: Flagge (Seitenverhältnis 1:2) + Platz für den Namen darunter
+        public static int HeightFor(int width) { return (width - 16) / 2 + 8 + 34; }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -376,21 +379,37 @@ namespace GaesteSchutz
             g.Clear(Parent != null ? Parent.BackColor : Ui.Surface);
             g.SmoothingMode = SmoothingMode.AntiAlias;
             var r = new Rectangle(0, 0, Width - 1, Height - 1);
-            using (GraphicsPath gp = Round(r, (int)(8 * k)))
+            int rad = (int)(10 * k);
+            using (GraphicsPath gp = Round(r, rad))
             {
                 using (var br = new SolidBrush(Current ? Ui.Blue : hot ? Ui.FieldHover : Ui.Field)) g.FillPath(br, gp);
-                using (var pen = new Pen(Current ? Logo.Cyan : Ui.Border, Current ? 2f : 1f)) g.DrawPath(pen, gp);
             }
-            int fh = (int)(26 * k), fw = (int)(39 * k);
-            var fr = new Rectangle((int)(14 * k), (Height - fh) / 2, fw, fh);
-            g.SmoothingMode = SmoothingMode.None;
-            Flags.Draw(g, fr, LangTag);
-            int tx = fr.Right + (int)(14 * k);
-            TextRenderer.DrawText(g, Text, Font, new Rectangle(tx, 0, Width - tx - (int)(28 * k), Height), Color.White,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
-            if (Current)
-                TextRenderer.DrawText(g, "✔", Font, new Rectangle(Width - (int)(30 * k), 0, (int)(22 * k), Height), Logo.Cyan,
-                    TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
+
+            // Die Flagge ist der Knopf: groß, mit runden Ecken
+            int pad = (int)(8 * k);
+            var fr = new Rectangle(pad, pad, Width - 2 * pad, (Width - 2 * pad) / 2);
+            using (GraphicsPath clip = Round(fr, (int)(6 * k)))
+            {
+                GraphicsState st = g.Save();
+                g.SetClip(clip);
+                g.SmoothingMode = SmoothingMode.None;
+                Flags.Draw(g, fr, LangTag);
+                g.Restore(st);
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                if (hot && !Current)
+                    using (var br = new SolidBrush(Color.FromArgb(40, 255, 255, 255))) g.FillPath(br, clip);
+                using (var pen = new Pen(Color.FromArgb(120, 0, 0, 0))) g.DrawPath(pen, clip);
+            }
+
+            // Name der Sprache darunter
+            var tr = new Rectangle(pad, fr.Bottom, Width - 2 * pad, Height - fr.Bottom);
+            TextRenderer.DrawText(g, (Current ? "✔  " : "") + Text, Font, tr, Color.White,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+
+            // Rahmen: aktuelle Sprache neon, sonst beim Darüberfahren hell
+            using (GraphicsPath gp = Round(r, rad))
+            using (var pen = new Pen(Current ? Logo.Cyan : hot ? Ui.Muted : Ui.Border, Current ? 3f * k : 1f))
+                g.DrawPath(pen, gp);
         }
     }
 
@@ -442,11 +461,10 @@ namespace GaesteSchutz
                     break;
                 default:
                     using (var b = new SolidBrush(Ui.Grey)) g.FillRectangle(b, r);
-                    TextRenderer.DrawText(g, lang.ToUpperInvariant(), new Font("Segoe UI Semibold", 8f), r, Color.White,
+                    TextRenderer.DrawText(g, lang.ToUpperInvariant(), new Font("Segoe UI Semibold", Math.Max(8f, r.Height / 4f), GraphicsUnit.Pixel), r, Color.White,
                         TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
                     break;
             }
-            using (var pen = new Pen(Color.FromArgb(90, 0, 0, 0))) g.DrawRectangle(pen, r.X, r.Y, r.Width - 1, r.Height - 1);
         }
 
         static void UnionJack(Graphics g, Rectangle r)
