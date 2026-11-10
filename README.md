@@ -62,6 +62,7 @@ All settings apply to guests only – your own account stays as it is.
 - **Fourth language** for all guest windows: French, Spanish, Dutch, Polish or Czech
 - **Automatic** – shut the PC down when a guest leaves it unused (after a 60-second “Still there?”), restart daily at a fixed time, show a notice that the PC is reset after every guest
 - **Locks & printer** – lock Control Panel / Settings, command prompt, registry editor, installing programs and running programs from Downloads; default printer for guests
+- **Language** – the Windows display language for guests, chosen from the language packs installed on the PC (otherwise guests get the language Windows was installed with)
 - **Sign-in** – “Guest” is selected automatically; optionally show **only** “Guest” and reach your own account with **Ctrl + Alt + F** on the sign-in screen
 
 | | |

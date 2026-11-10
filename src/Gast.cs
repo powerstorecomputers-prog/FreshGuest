@@ -1058,6 +1058,7 @@ namespace GaesteSchutz
             if (RestartTime(store) != null) step("Neustart", () => ApplyDailyRestart(store, null, log));
             if (Locks(store) != 0 || GuestPrinter(store) != null) step("Sperren", () => ApplyLocksAndPrinter(store, 0, null, log));
             if (PictureOn(store)) step("Profilbild", () => RemovePicture(store, log));
+            if (GuestLanguage(store) != null) step("Sprache", () => ApplyGuestLanguage(store, null, log));
             if (GuestOnlyTile()) step("Anmeldung", () => ApplyGuestOnlyTile(false, log));
         }
 
