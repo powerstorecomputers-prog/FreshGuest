@@ -252,8 +252,6 @@ namespace GaesteSchutz
             catch { return tag; }
         }
 
-        public const int SideWidth = 236;
-
         // Gibt es etwas zu wählen? (mindestens zwei Sprachpakete)
         public static bool Available() { return ChoiceLanguages().Count >= 2; }
 
@@ -266,42 +264,45 @@ namespace GaesteSchutz
                 .OrderBy(t => Array.IndexOf(Allowed, t.Split('-')[0].ToLowerInvariant())).ToList();
         }
 
-        public static void AddSide(Form f, int x, int w, bool preview)
+        // "it-IT" -> "it" (nur die vier Gast-Sprachen, sonst null)
+        public static string LangOf(string tag)
         {
-            Panel col = MakeColumn(f, x, 78, w, preview);
-            int h = f.ClientSize.Height - 78;
-            if (col.Height > h) { f.ClientSize = new Size(f.ClientSize.Width, col.Height + 78); h = col.Height; }
-            col.Height = h;
-            f.Controls.Add(col);
+            if (string.IsNullOrEmpty(tag)) return null;
+            string two = tag.Split('-')[0].ToLowerInvariant();
+            return Allowed.Contains(two) ? two : null;
         }
 
-        // Spalte rechts: „Windows“ + je Sprache ein Knopf mit Flagge und Namen (untereinander)
-        public static Panel MakeColumn(Form f, int x, int y, int w, bool preview)
+        // Sprache, die jeder neue Gast bekommt (Einstellung „Windows-Sprache für Gäste“, sonst die Installationssprache)
+        public static string StandardLanguage()
         {
-            List<string> langs = ChoiceLanguages();
-            string current = CultureInfo.CurrentUICulture.Name;
-            var p = new Panel { Location = new Point(x, y), Width = w, BackColor = Ui.Surface };
-            var t = Ui.MakeLabel("Windows", 18, 16, w - 36, 30);
-            t.Font = new Font("Segoe UI Semibold", 14f);
-            p.Controls.Add(t);
-            var s = Ui.MakeLabel("Sprache · Lingua\r\nLanguage · Idioma", 18, 48, w - 36, 40);
-            s.ForeColor = Ui.Muted;
-            p.Controls.Add(s);
-            int by = 98;
-            foreach (string tag in langs)
+            try
             {
-                var b = new FlagButton(tag, ButtonName(tag, langs), string.Equals(tag, current, StringComparison.OrdinalIgnoreCase))
-                    { Location = new Point(16, by), Size = new Size(w - 32, FlagButton.HeightFor(w - 32)) };
-                string tg = tag;
-                if (!b.Current) b.Click += (o, e) => Request(f, tg, preview);
-                p.Controls.Add(b);
-                by += b.Height + 12;
+                using (RegistryKey k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\FreshGuest"))
+                {
+                    string v = k == null ? "" : Convert.ToString(k.GetValue("GastStandardSprache", ""));
+                    if (v.Length > 0) return v;
+                }
             }
-            p.Height = by + 8;
-            return p;
+            catch { }
+            return GuestExtras.InstallLanguage();
         }
 
-        static void Request(Form owner, string tag, bool preview)
+        // Kleine Taste „Andere Sprache“ (im Willkommensfenster nach der Sprachwahl) – öffnet wieder die Flaggen
+        public static void AddOtherLanguage(Form f, int x, int y, GuestLang lang, bool preview)
+        {
+            var b = Ui.MakeButton(lang.Other, x, y, 220, 44, false);
+            b.Click += (s, e) =>
+            {
+                using (var p = new LanguageForm(preview))
+                {
+                    p.ShowDialog(f);
+                    // gleiche Sprache gewählt: nichts zu tun; andere Sprache: LanguageForm meldet selbst ab
+                }
+            };
+            f.Controls.Add(b);
+        }
+
+        public static bool Request(Form owner, string tag, bool preview)
         {
             string two = tag.Split('-')[0].ToLowerInvariant();
             string[] tx;
@@ -310,9 +311,9 @@ namespace GaesteSchutz
             {
                 MessageBox.Show(owner, L.T("Vorschau – so fragt FreshGuest den Gast:", "Anteprima – così FreshGuest chiede all'ospite:", "Preview – this is what FreshGuest asks the guest:") +
                     "\n\n" + tx[0], L.AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
+                return false;
             }
-            if (MessageBox.Show(owner, tx[0], L.AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1) != DialogResult.Yes) return;
+            if (MessageBox.Show(owner, tx[0], L.AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1) != DialogResult.Yes) return false;
 
             owner.UseWaitCursor = true;
             Application.DoEvents();
@@ -330,9 +331,10 @@ namespace GaesteSchutz
             }
             catch { }
             owner.UseWaitCursor = false;
-            if (ok) { Idle.SignOut(); return; }
+            if (ok) { Idle.SignOut(); return true; }
             try { using (RegistryKey k = Registry.CurrentUser.OpenSubKey(@"Software\FreshGuest", true)) if (k != null) k.DeleteValue("Sprachwunsch", false); } catch { }
             MessageBox.Show(owner, tx[1], L.AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
         }
     }
 
@@ -349,7 +351,7 @@ namespace GaesteSchutz
             Text = name;
             Current = current;
             Font = new Font("Segoe UI Semibold", 11f);
-            Cursor = current ? Cursors.Default : Cursors.Hand;
+            Cursor = Cursors.Hand;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         }
 
@@ -498,30 +500,63 @@ namespace GaesteSchutz
         }
     }
 
-    // Kleines Fenster nur für die Sprachwahl (wenn weder Willkommens- noch Hinweisfenster eingeschaltet ist)
+    // Erstes Fenster bei der Sprachwahl: nur die Flaggen, groß nebeneinander.
+    // Gleiche Sprache wie jetzt -> Chosen (das Willkommen kommt sofort); andere Sprache -> abmelden, neu anmelden.
     class LanguageForm : Form
     {
-        const int W = 360;
+        public string Chosen;        // de/it/en/es, wenn die aktuelle Sprache gewählt wurde
+        public bool Switching;       // PC meldet sich für den Sprachwechsel ab
 
         public LanguageForm(bool preview)
         {
-            Ui.Style(this, W, 300);
+            List<string> langs = GuestSwitch.ChoiceLanguages();
+            if (langs.Count == 0) langs.Add(CultureInfo.CurrentUICulture.Name);
+            const int tile = 200, gap = 16, pad = 28;
+            int w = Math.Max(640, pad * 2 + langs.Count * tile + (langs.Count - 1) * gap);
+            Ui.Style(this, w, 300);
             MinimizeBox = false;
             if (preview) { StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false; }
             else TopMost = true;
-            Text = L.AppName;
+            Text = L.AppName + (preview ? "  (" + L.T("Vorschau", "Anteprima", "Preview") + ")" : "");
             int lockupRight;
             Logo.MakeHeader(this, 78, out lockupRight);
-            Panel col = GuestSwitch.MakeColumn(this, 0, 78, W, preview);
-            Controls.Add(col);
-            int y = col.Bottom + 6;
-            Button ok = Ui.MakeButton("OK", W - 220, y, 200, 44, true);
-            ok.Click += (s, e) => Close();
-            Controls.Add(ok);
-            AcceptButton = ok;
-            CancelButton = ok;
-            ClientSize = new Size(W, y + 44 + 18);
-            ActiveControl = ok;
+
+            int y = 98;
+            var shown = langs.Select(t => GuestTexts.Find(GuestSwitch.LangOf(t) ?? "en") ?? GuestTexts.All[0]).ToList();
+            var title = Ui.MakeLabel(string.Join("   ", shown.Select(l => l.Choose).Distinct().ToArray()), pad, y, w - 2 * pad, 40);
+            title.Font = new Font("Segoe UI Semibold", 17f);
+            Controls.Add(title);
+            y += 58;
+
+            string current = CultureInfo.CurrentUICulture.Name;
+            int x = (w - (langs.Count * tile + (langs.Count - 1) * gap)) / 2;
+            int th = FlagButton.HeightFor(tile);
+            foreach (string tag in langs)
+            {
+                bool cur = string.Equals(tag, current, StringComparison.OrdinalIgnoreCase);
+                var b = new FlagButton(tag, ButtonName(tag, langs), cur) { Location = new Point(x, y), Size = new Size(tile, th), Cursor = Cursors.Hand };
+                string t = tag;
+                b.Click += (s, e) =>
+                {
+                    if (string.Equals(t, current, StringComparison.OrdinalIgnoreCase)) { Chosen = GuestSwitch.LangOf(t); Close(); return; }
+                    if (GuestSwitch.Request(this, t, preview)) { Switching = true; Close(); }
+                };
+                Controls.Add(b);
+                x += tile + gap;
+            }
+            ClientSize = new Size(w, y + th + 30);
+        }
+
+        static string ButtonName(string tag, List<string> all)
+        {
+            try
+            {
+                var c = new CultureInfo(tag);
+                string n = c.Parent.NativeName;
+                if (string.IsNullOrEmpty(n)) n = c.NativeName;
+                return char.ToUpper(n[0]) + n.Substring(1);
+            }
+            catch { return tag; }
         }
     }
 }

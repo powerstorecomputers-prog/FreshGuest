@@ -90,6 +90,8 @@ Am 09.11.2026 auf dem echten Gäste-PC (Windows 11 Pro, italienisch) mit **Versi
 **Auf dem Gäste-PC bestätigt (1.3):** Hintergrund für Gäste.
 **Lizenz (ab der Veröffentlichung):** GNU GPL v3.0 oder neuer (statt MIT + Commons Clause). Veränderte Fassungen dürfen nicht „FreshGuest“ heißen und nicht das Logo tragen.
 
+**Neu in 1.25:** Willkommensfenster nach **Entwurf A**: WLAN-Zeile, darunter die vier Sprachen als Spalten nebeneinander (auf schmalen Bildschirmen 2 × 2), jede mit Flagge. **Mit Sprachwahl:** Ist Windows in der Standardsprache (`GastStandardSprache`, sonst Installationssprache), kommen zuerst nur die Flaggen (`LanguageForm`); andere Sprache → Abmelden/Anmelden → Willkommen bzw. Hinweis **nur in dieser Sprache** mit Taste „Andere Sprache“. Gleiche Sprache → Willkommen sofort. **Am Gäste-PC noch zu testen.**
+
 **Neu in 1.24:** Kein Desktop-Symbol „Internet (Firefox)“ mehr für Gäste (Firefox bleibt in seiner Installationssprache); ein vorhandenes wird beim Update entfernt. Nur noch Edge und Chrome.
 
 **Neu in 1.23:** **Fest vier Sprachen** für alle Gast-Fenster: Deutsch, Italienisch, Englisch, Spanisch (die wählbare 4. Sprache Französisch/Niederländisch/Polnisch/Tschechisch entfällt; Willkommenstexte für Spanisch unter `W_*_es`). Die Flaggen-Knöpfe zeigen nur diese vier Sprachen (soweit das Windows-Sprachpaket installiert ist); die Flaggen sind jetzt die Knöpfe selbst. **Am Gäste-PC noch zu testen.**

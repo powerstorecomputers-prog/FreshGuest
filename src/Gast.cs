@@ -309,30 +309,37 @@ namespace GaesteSchutz
                 L.Init(null);                          // Sprache des Gast-Kontos (Windows-Sprache)
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new GuestSession(welcome ? w : null, notice && !welcome ? w : null, idle, w.Lang4,
-                    w.LangChoice && !welcome && !notice));
+                Application.Run(new GuestSession(w, welcome, notice, idle));
             }
             catch { }
         }
     }
 
-    // Läuft in der Gast-Sitzung: zeigt das Willkommensfenster und überwacht die Benutzung
+    // Läuft in der Gast-Sitzung: zeigt das Willkommensfenster und überwacht die Benutzung.
+    // Mit Sprachwahl: Ist Windows noch in der Standardsprache, kommen zuerst nur die Flaggen. Wählt der Gast eine
+    // andere Sprache, meldet sich der PC kurz ab und wieder an – in der neuen Sitzung kommt dann gleich das
+    // Willkommen, nur in seiner Sprache. Ohne Sprachwahl: Willkommen in allen vier Sprachen.
     class GuestSession : ApplicationContext
     {
         readonly int idleMin;
-        readonly string lang4;
+        readonly WelcomeInfo info;
+        readonly bool welcome, notice;
         readonly Timer timer;
         IdleWarnForm warn;
 
-        // welcome: Willkommensfenster (enthält den Hinweis); notice: nur das Hinweis-Fenster
-        public GuestSession(WelcomeInfo welcome, WelcomeInfo notice, int idleMin, string lang4, bool langOnly)
+        public GuestSession(WelcomeInfo info, bool welcome, bool notice, int idleMin)
         {
+            this.info = info;
+            this.welcome = welcome;
+            this.notice = notice;
             this.idleMin = idleMin;
-            this.lang4 = lang4 ?? "";
-            if (welcome != null) ShowFirst(new WelcomeForm(welcome, false));
-            else if (notice != null) ShowFirst(new NoticeForm(notice.IdleMin, notice.RestartTime, this.lang4, false, notice.LangChoice));
-            else if (langOnly) ShowFirst(new LanguageForm(false));
-            else if (idleMin <= 0) ExitThread();
+            string cur = GuestSwitch.LangOf(System.Globalization.CultureInfo.CurrentUICulture.Name);
+            if (info.LangChoice && GuestSwitch.Available())
+            {
+                if (cur == null || cur == GuestSwitch.LangOf(GuestSwitch.StandardLanguage())) ShowPicker();
+                else ShowContent(cur);                // kommt gerade vom Sprachwechsel
+            }
+            else ShowContent(null);
             if (idleMin > 0)
             {
                 timer = new Timer { Interval = 15000 };
@@ -341,9 +348,29 @@ namespace GaesteSchutz
             }
         }
 
-        void ShowFirst(Form f)
+        void ShowPicker()
         {
+            var p = new LanguageForm(false);
+            p.FormClosed += (s, e) =>
+            {
+                if (p.Switching) return;                // PC meldet sich gleich ab
+                ShowContent(p.Chosen ?? GuestSwitch.LangOf(System.Globalization.CultureInfo.CurrentUICulture.Name));
+            };
+            Show(p);
+        }
+
+        void ShowContent(string only)
+        {
+            Form f = null;
+            if (welcome) f = new WelcomeForm(info, false, only);
+            else if (notice) f = new NoticeForm(info.IdleMin, info.RestartTime, false, only, info.LangChoice);
+            if (f == null) { if (idleMin <= 0) ExitThread(); return; }
             f.FormClosed += (s, e) => { if (idleMin <= 0) ExitThread(); };
+            Show(f);
+        }
+
+        static void Show(Form f)
+        {
             f.Show();
             f.Activate();
         }
@@ -352,7 +379,7 @@ namespace GaesteSchutz
         {
             if (warn != null && !warn.IsDisposed) return;
             if (Idle.Seconds() < idleMin * 60 || Idle.DisplayRequired()) return;   // läuft z. B. ein Video -> nicht abmelden
-            warn = new IdleWarnForm(lang4);
+            warn = new IdleWarnForm("");
             warn.Show();
         }
     }
@@ -406,6 +433,7 @@ namespace GaesteSchutz
     class GuestLang
     {
         public string Code, Name, Welcome, Note, StillThere, StillHere, Contact, Reset, Idle, Restart, IdleWarn;
+        public string Choose, Other, Wifi, WifiPw;        // Sprachwahl + WLAN-Beschriftung (siehe GuestTexts.Extra)
     }
 
     // Texte für Gäste: immer Deutsch, Italienisch, Englisch und Spanisch gleichzeitig –
@@ -443,6 +471,31 @@ namespace GaesteSchutz
         // Die angezeigten Sprachen: Deutsch, Italiano, English, Español
         public static List<GuestLang> Active(string lang4) { return All.ToList(); }
 
+        // Texte für die Sprachwahl und die WLAN-Zeile, je Sprache
+        static readonly Dictionary<string, string[]> More = new Dictionary<string, string[]> {
+            { "de", new[] { "Sprache wählen", "Andere Sprache", "WLAN", "Kennwort" } },
+            { "it", new[] { "Scegli la lingua", "Altra lingua", "Wi-Fi", "Password" } },
+            { "en", new[] { "Choose your language", "Other language", "Wi-Fi", "Password" } },
+            { "es", new[] { "Elige tu idioma", "Otro idioma", "Wi-Fi", "Contraseña" } },
+        };
+
+        static GuestTexts()
+        {
+            foreach (GuestLang l in All)
+            {
+                string[] m;
+                if (!More.TryGetValue(l.Code, out m)) m = More["en"];
+                l.Choose = m[0]; l.Other = m[1]; l.Wifi = m[2]; l.WifiPw = m[3];
+            }
+        }
+
+        // Nur diese eine Sprache (Code de/it/en/es) – oder alle, wenn code leer/unbekannt
+        public static List<GuestLang> Only(string code)
+        {
+            GuestLang one = string.IsNullOrEmpty(code) ? null : Find(code);
+            return one != null ? new List<GuestLang> { one } : All.ToList();
+        }
+
         public static string Dot(string lang4, Func<GuestLang, string> text)
         {
             return string.Join("  ·  ", Active(lang4).Select(text).ToArray());
@@ -458,7 +511,8 @@ namespace GaesteSchutz
         }
 
         // Ein Kasten je Sprache untereinander; Rückgabe: y darunter
-        public static int AddBoxes(Form f, int y, int w, IList<string> titles, IList<string> bodies, int cols = 1)
+        public static int AddBoxes(Form f, int y, int w, IList<string> titles, IList<string> bodies, int cols = 1,
+            IList<string> flags = null, float fontSize = 0f)
         {
             int gap = 10, bw = (w - 40 - (cols - 1) * gap) / cols;
             for (int i = 0; i < titles.Count; i += cols)
@@ -468,7 +522,9 @@ namespace GaesteSchutz
                 for (int c = 0; c < cols && i + c < titles.Count; c++)
                 {
                     var box = new NoteBox(titles[i + c], bodies[i + c]) { Location = new Point(20 + c * (bw + gap), y), Width = bw };
+                    if (flags != null) box.FlagTag = flags[i + c];
                     f.Controls.Add(box);             // erst einfügen: übernimmt die Schrift des Fensters
+                    if (fontSize > 0) box.Font = new Font(f.Font.FontFamily, fontSize);
                     h = Math.Max(h, box.NeededHeight(bw));
                     row.Add(box);
                 }
@@ -548,62 +604,67 @@ namespace GaesteSchutz
 
         public static void Preview(IWin32Window owner, int idleMin, string restartTime, string lang4, bool langChoice)
         {
-            using (var f = new NoticeForm(idleMin, restartTime, lang4, true, langChoice)) f.ShowDialog(owner);
+            using (var f = new NoticeForm(idleMin, restartTime, true, null, false)) f.ShowDialog(owner);
         }
 
-        public NoticeForm(int idleMin, string restartTime, string lang4, bool preview, bool langChoice = false)
+        // only: nur diese Sprache (de/it/en/es) – sonst alle vier (auf breiten Bildschirmen 2 × 2)
+        public NoticeForm(int idleMin, string restartTime, bool preview, string only, bool langChoice)
         {
-            int side = langChoice && GuestSwitch.Available() ? GuestSwitch.SideWidth : 0;
-            Ui.Style(this, W + side, 300);
+            List<GuestLang> langs = GuestTexts.Only(only);
+            int cols = langs.Count > 1 && Screen.PrimaryScreen.WorkingArea.Width >= 1100 ? 2 : 1;
+            int w = cols == 2 ? 1040 : W;
+            Ui.Style(this, w, 300);
             MinimizeBox = false;
             if (preview) { StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false; }
             else TopMost = true;
-            List<GuestLang> langs = GuestTexts.Active(lang4);
             Text = L.AppName + (preview ? "  (" + L.T("Vorschau", "Anteprima", "Preview") + ")" : "");
             int lockupRight;
             Logo.MakeHeader(this, 78, out lockupRight);
 
             int y = 92;
-            var title = Ui.MakeLabel(GuestTexts.Dot(lang4, l => l.Note), 22, y, W - 44, 40);
-            title.Font = new Font("Segoe UI Semibold", langs.Count > 3 ? 14f : 16f);
+            var title = Ui.MakeLabel(string.Join("   ", langs.Select(l => l.Note).ToArray()), 22, y, w - 44, 44);
+            title.Font = new Font("Segoe UI Semibold", langs.Count > 1 ? 16f : 20f);
             Controls.Add(title);
-            y += 48;
-            y = GuestTexts.AddBoxes(this, y, W, langs.Select(l => l.Name).ToList(), langs.Select(l => GuestTexts.Reset(l, idleMin, restartTime)).ToList()) + 10;
+            y += 52;
+            y = GuestTexts.AddBoxes(this, y, w, langs.Select(l => l.Name).ToList(), langs.Select(l => GuestTexts.Reset(l, idleMin, restartTime)).ToList(),
+                cols, langs.Select(l => l.Code).ToList()) + 10;
 
-            Button ok = Ui.MakeButton("OK", W - 220, y, 200, 44, true);
+            Button ok = Ui.MakeButton("OK", w - 220, y, 200, 44, true);
             ok.Click += (s, e) => Close();
             Controls.Add(ok);
             AcceptButton = ok;
             CancelButton = ok;
-            ClientSize = new Size(W + side, y + 44 + 18);
-            if (side > 0) GuestSwitch.AddSide(this, W, side, preview);
+            if (only != null && langChoice) GuestSwitch.AddOtherLanguage(this, 20, y, langs[0], preview);
+            ClientSize = new Size(w, y + 44 + 18);
             ActiveControl = ok;
         }
 
         protected override void OnLoad(EventArgs e) { base.OnLoad(e); GuestTexts.FitToScreen(this); }
     }
 
-    // Willkommensfenster für Gäste (auch als Vorschau in den Einstellungen) – alle Sprachen gleichzeitig
+    // Willkommensfenster für Gäste (auch als Vorschau in den Einstellungen).
+    // Alle vier Sprachen: Spalten nebeneinander (Entwurf A). Nach der Sprachwahl: nur die Sprache des Gastes, groß.
     class WelcomeForm : Form
     {
         readonly WelcomeInfo info;
         readonly bool preview;
-        readonly int W, cols;       // breiter Bildschirm: Sprachen in zwei Spalten, sonst wird das Fenster zu hoch
-        readonly int side;          // Spalte rechts mit den Sprachen für Windows (0 = keine)
+        readonly string only;
+        readonly int W, cols;
 
         public static void Preview(IWin32Window owner, WelcomeInfo info)
         {
-            using (var f = new WelcomeForm(info, true)) f.ShowDialog(owner);
+            using (var f = new WelcomeForm(info, true, null)) f.ShowDialog(owner);
         }
 
-        public WelcomeForm(WelcomeInfo info, bool preview)
+        public WelcomeForm(WelcomeInfo info, bool preview, string only = null)
         {
             this.info = info;
             this.preview = preview;
-            side = info.LangChoice && GuestSwitch.Available() ? GuestSwitch.SideWidth : 0;
-            cols = Screen.PrimaryScreen.WorkingArea.Width >= 1100 + side ? 2 : 1;
-            W = cols == 2 ? 1040 : 700;
-            Ui.Style(this, W + side, 400);
+            this.only = GuestTexts.Only(only).Count == 1 ? only : null;
+            int screen = Screen.PrimaryScreen.WorkingArea.Width;
+            if (this.only != null) { cols = 1; W = 760; }
+            else { cols = screen >= 1260 ? 4 : screen >= 1100 ? 2 : 1; W = cols == 4 ? 1200 : cols == 2 ? 1040 : 700; }
+            Ui.Style(this, W, 400);
             MinimizeBox = false;
             if (preview) { StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false; }
             else TopMost = true;
@@ -612,70 +673,80 @@ namespace GaesteSchutz
 
         void Build()
         {
-            List<GuestLang> langs = GuestTexts.Active(info.Lang4);
+            List<GuestLang> langs = GuestTexts.Only(only);
+            bool one = langs.Count == 1;
             Text = L.AppName + (preview ? "  (" + L.T("Vorschau", "Anteprima", "Preview") + ")" : "");
             int lockupRight;
             Logo.MakeHeader(this, 78, out lockupRight);
 
-            int y = 92;
-            var title = Ui.MakeLabel(GuestTexts.Dot(info.Lang4, l => l.Welcome), 22, y, W - 44, 44);
-            title.Font = new Font("Segoe UI Semibold", langs.Count > 3 ? 15f : 18f);
+            int y = 94;
+            var title = Ui.MakeLabel(string.Join("   ", langs.Select(l => l.Welcome).ToArray()), 22, y, W - 44, one ? 56 : 44);
+            title.Font = new Font("Segoe UI Semibold", one ? 28f : 20f);
             Controls.Add(title);
-            y += 52;
+            y += one ? 66 : 54;
 
-            // Für alle gleich: WLAN (markier- und kopierbar)
-            var rows = new List<KeyValuePair<string, string>>();
-            if (info.Wlan.Trim().Length > 0) rows.Add(new KeyValuePair<string, string>("WLAN · Wi-Fi", info.Wlan));
-            if (info.WlanPw.Trim().Length > 0) rows.Add(new KeyValuePair<string, string>("Kennwort · Password", info.WlanPw));
-            var valueFont = new Font("Segoe UI Semibold", 12f);
-            foreach (var r in rows)
+            // WLAN-Zeile: Name und Kennwort nebeneinander (markier- und kopierbar)
+            string wl = one ? langs[0].Wifi : "WLAN · Wi-Fi", pl = one ? langs[0].WifiPw : "Kennwort · Password · Contraseña";
+            if (info.Wlan.Trim().Length > 0 || info.WlanPw.Trim().Length > 0)
             {
-                var k = Ui.MakeLabel(r.Key, 24, y + 3, 216, 24);
-                k.ForeColor = Ui.Muted;
-                Controls.Add(k);
-                var v = new TextBox { Text = r.Value, ReadOnly = true, BorderStyle = BorderStyle.None, Font = valueFont,
-                    Location = new Point(246, y), Width = W - 270, BackColor = Ui.Bg, TabStop = false };
-                Controls.Add(v);
-                v.BackColor = Ui.Bg;                  // nach dem Einfärben: wie Text, aber markier- und kopierbar
-                v.BorderStyle = BorderStyle.None;
-                y += 34;
+                var strip = new Panel { Location = new Point(22, y), Size = new Size(Math.Min(W - 44, 640), 64), BackColor = Ui.Surface };
+                int x = 18;
+                foreach (var kv in new[] { new KeyValuePair<string, string>(wl, info.Wlan), new KeyValuePair<string, string>(pl, info.WlanPw) })
+                {
+                    if (kv.Value.Trim().Length == 0) continue;
+                    var k = Ui.MakeLabel(kv.Key, x, 8, 300, 20);
+                    k.ForeColor = Ui.Muted;
+                    strip.Controls.Add(k);
+                    var v = new TextBox { Text = kv.Value, ReadOnly = true, BorderStyle = BorderStyle.None, Font = new Font("Segoe UI Semibold", 13f),
+                        Location = new Point(x, 30), Width = 290, BackColor = Ui.Surface, ForeColor = Ui.Text, TabStop = false };
+                    strip.Controls.Add(v);
+                    x += 310;
+                }
+                Controls.Add(strip);
+                foreach (Control c in strip.Controls)          // nach dem Einfärben: wie Text, aber markier- und kopierbar
+                {
+                    var tb = c as TextBox;
+                    if (tb != null) { tb.BorderStyle = BorderStyle.None; tb.BackColor = Ui.Surface; }
+                }
+                y += 64 + 18;
             }
-            if (rows.Count > 0) y += 10;
 
             // Je Sprache ein Kasten: deine Angaben in dieser Sprache + der feste Hinweis „alles wird gelöscht“
             var bodies = new List<string>();
-            for (int i = 0; i < langs.Count; i++)
+            foreach (GuestLang l in langs)
             {
-                string slot = WelcomeInfo.Slots[i];
+                string slot = l.Code;
                 var sb = new System.Text.StringBuilder();
                 string co = info.Get("Checkout", slot), ct = info.Get("Kontakt", slot), en = info.Get("ExtraName", slot), ev = info.Get("Extra", slot), tx = info.Get("Text", slot);
                 if (co.Length > 0) sb.AppendLine("Check-out:  " + co);
-                if (ct.Length > 0) sb.AppendLine(langs[i].Contact + ":  " + ct);
+                if (ct.Length > 0) sb.AppendLine(l.Contact + ":  " + ct);
                 if (ev.Length > 0) sb.AppendLine((en.Length > 0 ? en.TrimEnd(':') + ":  " : "") + ev);
                 if (tx.Length > 0) sb.AppendLine(tx);
                 if (sb.Length > 0) sb.AppendLine();
-                sb.Append(GuestTexts.Reset(langs[i], info.IdleMin, info.RestartTime));
+                sb.Append(GuestTexts.Reset(l, info.IdleMin, info.RestartTime));
                 bodies.Add(sb.ToString());
             }
-            y = GuestTexts.AddBoxes(this, y, W, langs.Select(l => l.Name).ToList(), bodies, cols) + 10;
+            y = GuestTexts.AddBoxes(this, y, W, langs.Select(l => l.Name).ToList(), bodies, cols, langs.Select(l => l.Code).ToList(),
+                one ? 11.5f : 0f) + 12;
 
             Button ok = Ui.MakeButton("OK", W - 220, y, 200, 44, true);
             ok.Click += (s, e) => Close();
             Controls.Add(ok);
             AcceptButton = ok;
             CancelButton = ok;
-            ClientSize = new Size(W + side, y + 44 + 18);
-            if (side > 0) GuestSwitch.AddSide(this, W, side, preview);
+            if (one && info.LangChoice) GuestSwitch.AddOtherLanguage(this, 22, y, langs[0], preview);
+            ClientSize = new Size(W, y + 44 + 18);
             ActiveControl = ok;
         }
 
         protected override void OnLoad(EventArgs e) { base.OnLoad(e); GuestTexts.FitToScreen(this); }
     }
 
-    // Hinweis-Kasten mit farbiger Kante links (für das Willkommensfenster)
+    // Kasten mit farbiger Kante links und (wahlweise) kleiner Flagge vor dem Titel
     class NoteBox : Control
     {
         readonly string title, body;
+        public string FlagTag;
 
         public NoteBox(string title, string body)
         {
@@ -692,7 +763,7 @@ namespace GaesteSchutz
             using (var bold = new Font(Font, FontStyle.Bold))
             {
                 int tw = width - (int)(36 * k);
-                return (int)(14 * k) + TextRenderer.MeasureText(title, bold).Height + (int)(4 * k) +
+                return (int)(14 * k) + Math.Max(TextRenderer.MeasureText(title, bold).Height, (int)(16 * k)) + (int)(6 * k) +
                        TextRenderer.MeasureText(body, Font, new Size(tw, 0), TextFormatFlags.WordBreak).Height + (int)(14 * k);
             }
         }
@@ -708,8 +779,16 @@ namespace GaesteSchutz
             int x = (int)(20 * k), y = (int)(14 * k), tw = Width - (int)(36 * k);
             using (var bold = new Font(Font, FontStyle.Bold))
             {
-                TextRenderer.DrawText(g, title, bold, new Point(x, y), Logo.Pink);
-                y += TextRenderer.MeasureText(title, bold).Height + (int)(4 * k);
+                int th = Math.Max(TextRenderer.MeasureText(title, bold).Height, (int)(16 * k));
+                int tx = x;
+                if (!string.IsNullOrEmpty(FlagTag))
+                {
+                    int fh = (int)(14 * k), fw = fh * 2;
+                    Flags.Draw(g, new Rectangle(x, y + (th - fh) / 2, fw, fh), FlagTag);
+                    tx += fw + (int)(8 * k);
+                }
+                TextRenderer.DrawText(g, title, bold, new Point(tx, y), Logo.Pink);
+                y += th + (int)(6 * k);
             }
             TextRenderer.DrawText(g, body, Font, new Rectangle(x, y, tw, Height - y), Ui.Text, TextFormatFlags.WordBreak);
         }

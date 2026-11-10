@@ -41,8 +41,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("PC für Feriengäste: Gast-Daten werden beim Neustart gelöscht")]
 [assembly: AssemblyCompany("PowerStore Computers")]
 [assembly: AssemblyCopyright("© 2026 PowerStore Computers")]
-[assembly: AssemblyVersion("1.24.0.0")]
-[assembly: AssemblyFileVersion("1.24.0.0")]
+[assembly: AssemblyVersion("1.25.0.0")]
+[assembly: AssemblyFileVersion("1.25.0.0")]
 
 namespace GaesteSchutz
 {
@@ -73,7 +73,7 @@ namespace GaesteSchutz
     static class Program
     {
         public const string Name = "FreshGuest";
-        public const string Version = "1.24";
+        public const string Version = "1.25";
         public const string Copyright = "© 2026 PowerStore Computers";
         public static bool Demo;
         public static bool CleanShots;   // Bilder für die Anleitung: ohne DEMO-Hinweise
@@ -704,6 +704,13 @@ namespace GaesteSchutz
             if (GuestExtras.GuestOnlyTile())
                 try { GuestExtras.ApplyGuestOnlyTile(false, l => log.AppendLine(l)); } catch (Exception ex) { log.AppendLine("Anmeldung: " + ex.Message); }
             if (GuestExtras.RestartTime(store) != null) GuestExtras.SyncRestartTime(GuestExtras.RestartTime(store));   // ab 1.18: für den Gast-Hinweis
+            try
+            {
+                using (RegistryKey k = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\FreshGuest"))      // ab 1.25: für die Sprachwahl der Gäste
+                    if (GuestExtras.GuestLanguage(store) != null) k.SetValue("GastStandardSprache", GuestExtras.GuestLanguage(store), RegistryValueKind.String);
+                    else k.DeleteValue("GastStandardSprache", false);
+            }
+            catch { }
             foreach (string task in new[] { "FreshGuest-Profilbild", "FreshGuest-Neustart" }) TaskRunOnBattery(task);       // ab 1.19: auch im Akkubetrieb
             // Anmeldebildschirm: Aufgabe (neu) anlegen – ab 1.17 wird „Guest“ automatisch ausgewählt
             try { SignIn.Sync(store, l => log.AppendLine(l)); } catch (Exception ex) { log.AppendLine("Anmeldung: " + ex.Message); }
@@ -2489,9 +2496,9 @@ namespace GaesteSchutz
             chkChoice = AddCheck(t, L.T("Gäste dürfen die Windows-Sprache selbst wählen", "Gli ospiti possono scegliere la lingua di Windows",
                 "Guests may choose the Windows language themselves"), 322, GuestExtras.ChoiceOn(store));
             Indent(AddInfo(t, L.T(
-                "Knöpfe „Windows: Deutsch · Italiano · English …“ im Willkommens- bzw. Hinweisfenster. Ein Klick meldet den PC kurz ab und gleich wieder an – dann ist Windows in dieser Sprache. Der nächste Gast bekommt wieder die Standardsprache.",
-                "Pulsanti «Windows: Deutsch · Italiano · English …» nella finestra di benvenuto o di avviso. Un clic disconnette il PC per un attimo e lo riconnette subito – poi Windows è in quella lingua. L'ospite successivo riceve di nuovo la lingua predefinita.",
-                "Buttons \"Windows: Deutsch · Italiano · English …\" in the welcome or notice window. One click signs the PC out briefly and straight back in – then Windows is in that language. The next guest gets the default language again."),
+                "Beim Anmelden sieht der Gast zuerst nur die Flaggen. Wählt er eine andere Sprache, meldet sich der PC kurz ab und wieder an – dann kommt das Willkommen nur in seiner Sprache. Der nächste Gast bekommt wieder die Standardsprache.",
+                "All'accesso l'ospite vede prima solo le bandiere. Se sceglie un'altra lingua, il PC si disconnette per un attimo e si riconnette – poi il benvenuto appare solo nella sua lingua. L'ospite successivo riceve di nuovo la lingua predefinita.",
+                "At sign-in the guest first sees only the flags. If they choose another language, the PC signs out briefly and back in – then the welcome appears in their language only. The next guest gets the default language again."),
                 350, 80), 32);
         }
 
@@ -3221,7 +3228,10 @@ namespace GaesteSchutz
                 Shot(new SettingsForm(st, 2), Path.Combine(dir, "15-einstellungen-profilbild" + sfx + ".png"));
                 Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false), Path.Combine(dir, "13-gast-willkommen" + sfx + ".png"));
                 Shot(new IdleWarnForm(""), Path.Combine(dir, "14-gast-noch-da" + sfx + ".png"));
-                Shot(new NoticeForm(60, "04:00", "", false), Path.Combine(dir, "17-gast-hinweis" + sfx + ".png"));
+                Shot(new NoticeForm(60, "04:00", false, null, false), Path.Combine(dir, "17-gast-hinweis" + sfx + ".png"));
+                Shot(new LanguageForm(false), Path.Combine(dir, "19-gast-sprachwahl" + sfx + ".png"));
+                Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false, code == "de" ? "it" : code == "it" ? "de" : "es"),
+                    Path.Combine(dir, "20-gast-willkommen-eine-sprache" + sfx + ".png"));
 
                 if (code == "de")
                 {

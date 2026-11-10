@@ -208,7 +208,11 @@ namespace GaesteSchutz
                 SetHiveLanguage(store, tag, klid);              // erst die vorige Auswahl rückgängig machen, dann neu
                 // Eine gerade laufende Sprachwahl eines Gastes ist damit erledigt
                 using (RegistryKey k = Registry.LocalMachine.CreateSubKey(ConfigKey))
+                {
                     foreach (string n in new[] { "SprachTemp", "SprachTempVon", "SprachwunschOk", "SprachwechselAnmelden" }) k.DeleteValue(n, false);
+                    // Für die Gast-Sitzung lesbar: welche Sprache bekommt jeder neue Gast?
+                    if (tag != null) k.SetValue("GastStandardSprache", tag, RegistryValueKind.String); else k.DeleteValue("GastStandardSprache", false);
+                }
             }
             else log("DEMO: " + L.T("Windows-Standardprofil würde geändert.", "il profilo predefinito di Windows verrebbe modificato.",
                                     "Windows default profile would be changed."));
