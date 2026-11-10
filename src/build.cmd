@@ -17,6 +17,6 @@ if exist "..\FreshGuest-Anleitung.html" set "GUIDE=/resource:..\FreshGuest-Anlei
   /resource:..\logo\FreshGuest-Schriftzug.png,FreshGuest-Schriftzug.png ^
   /resource:..\logo\FreshGuest-448.png,FreshGuest-448.png ^
   %GUIDE% ^
-  FreshGuest.cs Gast.cs Anmeldung.cs Kachelbild.cs Sprache.cs
+  FreshGuest.cs Gast.cs Anmeldung.cs Kachelbild.cs Sprache.cs Sprachwahl.cs
 if errorlevel 1 (echo BUILD FEHLGESCHLAGEN & exit /b 1)
 echo OK: ..\FreshGuest.exe

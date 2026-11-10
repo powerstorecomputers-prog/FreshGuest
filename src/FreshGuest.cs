@@ -41,8 +41,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("PC für Feriengäste: Gast-Daten werden beim Neustart gelöscht")]
 [assembly: AssemblyCompany("PowerStore Computers")]
 [assembly: AssemblyCopyright("© 2026 PowerStore Computers")]
-[assembly: AssemblyVersion("1.21.0.0")]
-[assembly: AssemblyFileVersion("1.21.0.0")]
+[assembly: AssemblyVersion("1.22.0.0")]
+[assembly: AssemblyFileVersion("1.22.0.0")]
 
 namespace GaesteSchutz
 {
@@ -73,7 +73,7 @@ namespace GaesteSchutz
     static class Program
     {
         public const string Name = "FreshGuest";
-        public const string Version = "1.21";
+        public const string Version = "1.22";
         public const string Copyright = "© 2026 PowerStore Computers";
         public static bool Demo;
         public static bool CleanShots;   // Bilder für die Anleitung: ohne DEMO-Hinweise
@@ -594,7 +594,8 @@ namespace GaesteSchutz
             info.AppendLine("Sperren Gäste:        " + GuestExtras.Locks(store) + "   Drucker Gäste: " + (GuestExtras.GuestPrinter(store) ?? "aus"));
             info.AppendLine("Anmeldebildschirm:    " + SignIn.StatusText(store));
             info.AppendLine("Sprache Gäste:        " + (GuestExtras.GuestLanguage(store) ?? "Windows-Vorgabe") + "   Installationssprache: " + GuestExtras.InstallLanguage() +
-                "   Sprachpakete: " + string.Join(", ", GuestExtras.InstalledUiLanguages().ToArray()) + "   Tastatur Admin: " + (GuestExtras.AdminKeyboard() ?? "-"));
+                "   Sprachpakete: " + string.Join(", ", GuestExtras.InstalledUiLanguages().ToArray()) + "   Tastatur Admin: " + (GuestExtras.AdminKeyboard() ?? "-") +
+                "   Sprachwahl Gäste: " + (GuestExtras.ChoiceOn(store) ? "an" : "aus"));
             try
             {
                 using (RegistryKey wl = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"))
@@ -1975,9 +1976,9 @@ namespace GaesteSchutz
         public string WallSource, WallStyle, AutoTarget;
         public bool DeskChanged, SessionChanged, RestartChanged, LocksChanged, WelcomeOn;
         public bool SignInChanged, Preselect, GuestOnly, NoticeOn;
-        public bool LangChanged;
+        public bool LangChanged, ChoiceChanged, ChoiceOn;
         public string GuestLang;
-        CheckBox chkLang;
+        CheckBox chkLang, chkChoice;
         ComboBox cbGuestLang;
         List<string> langTags;
         CheckBox chkNotice;
@@ -2415,6 +2416,7 @@ namespace GaesteSchutz
             editInfo.Wlan = txtWlan.Text.Trim();
             editInfo.WlanPw = txtWlanPw.Text.Trim();
             editInfo.Lang4 = CurrentLang4();
+            editInfo.LangChoice = chkChoice.Checked;
             editInfo.IdleMin = chkIdle.Checked ? IdleChoices[Math.Max(0, cbIdle.SelectedIndex)] : 0;
             editInfo.RestartTime = chkRestart.Checked ? Convert.ToString(cbRestart.SelectedItem) : "";
             return editInfo;
@@ -2460,7 +2462,7 @@ namespace GaesteSchutz
             noticeInfo.Width = 336;
             Button btnNotice = Ui.MakeButton(L.T("Vorschau …", "Anteprima …", "Preview …"), 376, 348, 130, 32, false);
             btnNotice.Click += (s, e) => NoticeForm.Preview(this, chkIdle.Checked ? IdleChoices[Math.Max(0, cbIdle.SelectedIndex)] : 0,
-                chkRestart.Checked ? Convert.ToString(cbRestart.SelectedItem) : "", CurrentLang4());
+                chkRestart.Checked ? Convert.ToString(cbRestart.SelectedItem) : "", CurrentLang4(), chkChoice.Checked);
             t.Controls.Add(btnNotice);
             chkIdle.CheckedChanged += (s, e) => cbIdle.Enabled = chkIdle.Checked;
             chkRestart.CheckedChanged += (s, e) => cbRestart.Enabled = chkRestart.Checked;
@@ -2500,9 +2502,15 @@ namespace GaesteSchutz
                 "Altre lingue si aggiungono con il tuo account: Impostazioni → Data/ora e lingua → Lingua e area geografica → Aggiungi una lingua.",
                 "Add more languages with your account: Settings → Time & language → Language & region → Add a language."), 200, 88), 32);
             Indent(AddInfo(t, L.T(
-                "Gilt ab dem nächsten Gast. Die Fenster von FreshGuest für Gäste (Willkommen, Hinweis) bleiben immer mehrsprachig.",
-                "Vale dal prossimo ospite. Le finestre di FreshGuest per gli ospiti (benvenuto, avviso) restano sempre multilingue.",
-                "Applies from the next guest. FreshGuest's windows for guests (welcome, notice) always stay multilingual."), 296, 44), 32);
+                "Gilt ab dem nächsten Gast.", "Vale dal prossimo ospite.", "Applies from the next guest."), 292, 22), 32);
+
+            chkChoice = AddCheck(t, L.T("Gäste dürfen die Windows-Sprache selbst wählen", "Gli ospiti possono scegliere la lingua di Windows",
+                "Guests may choose the Windows language themselves"), 322, GuestExtras.ChoiceOn(store));
+            Indent(AddInfo(t, L.T(
+                "Knöpfe „Windows: Deutsch · Italiano · English …“ im Willkommens- bzw. Hinweisfenster. Ein Klick meldet den PC kurz ab und gleich wieder an – dann ist Windows in dieser Sprache. Der nächste Gast bekommt wieder die Standardsprache.",
+                "Pulsanti «Windows: Deutsch · Italiano · English …» nella finestra di benvenuto o di avviso. Un clic disconnette il PC per un attimo e lo riconnette subito – poi Windows è in quella lingua. L'ospite successivo riceve di nuovo la lingua predefinita.",
+                "Buttons \"Windows: Deutsch · Italiano · English …\" in the welcome or notice window. One click signs the PC out briefly and straight back in – then Windows is in that language. The next guest gets the default language again."),
+                350, 80), 32);
         }
 
         // ---------- Anmeldung ----------
@@ -2772,6 +2780,8 @@ namespace GaesteSchutz
             // Sprache
             GuestLang = chkLang.Checked && cbGuestLang.SelectedIndex >= 0 ? langTags[cbGuestLang.SelectedIndex] : null;
             LangChanged = GuestLang != GuestExtras.GuestLanguage(store);
+            ChoiceOn = chkChoice.Checked;
+            ChoiceChanged = ChoiceOn != GuestExtras.ChoiceOn(store);
 
             // Anmeldung
             Preselect = chkPreselect.Checked;
@@ -3024,7 +3034,8 @@ namespace GaesteSchutz
             Log(L.T("Automatisch ausschalten: ", "Spegnimento automatico: ", "Automatic shutdown: ") + (idle > 0 ? idle + " min" : aus));
             Log(L.T("Hinweis für Gäste: ", "Avviso per gli ospiti: ", "Guest notice: ") + (GuestExtras.NoticeOn(store) ? L.T("an", "sì", "on") : aus));
             Log(L.T("Windows-Sprache Gäste: ", "Lingua di Windows ospiti: ", "Guest Windows language: ") +
-                (GuestExtras.GuestLanguage(store) != null ? GuestExtras.LanguageName(GuestExtras.GuestLanguage(store)) : L.T("Windows-Vorgabe", "predefinita", "Windows default")));
+                (GuestExtras.GuestLanguage(store) != null ? GuestExtras.LanguageName(GuestExtras.GuestLanguage(store)) : L.T("Windows-Vorgabe", "predefinita", "Windows default")) +
+                "   " + L.T("Sprachwahl: ", "Scelta lingua: ", "Language choice: ") + (GuestExtras.ChoiceOn(store) ? L.T("an", "sì", "on") : aus));
             Log(L.T("Täglicher Neustart: ", "Riavvio giornaliero: ", "Daily restart: ") + (GuestExtras.RestartTime(store) ?? aus));
             Log(L.T("Profilbild Gäste: ", "Immagine profilo ospiti: ", "Guest profile picture: ") +
                 (GuestExtras.PictureOn(store) ? (store.Get("Profilbild") == GuestExtras.LogoPic ? L.T("Pinguin-Logo", "logo pinguino", "penguin logo") : L.T("eigenes Bild", "immagine propria", "own picture")) : aus));
@@ -3066,6 +3077,8 @@ namespace GaesteSchutz
                         ok &= Try(() => GuestExtras.ApplyLocksAndPrinter(store, f.Locks, f.Printer, Log));
                     if (f.LangChanged)
                         ok &= Try(() => GuestExtras.ApplyGuestLanguage(store, f.GuestLang, Log));
+                    if (f.ChoiceChanged)
+                        ok &= Try(() => GuestExtras.ApplyGuestChoice(store, f.ChoiceOn, Log));
                     if (f.SignInChanged)
                         ok &= Try(() => SignIn.Apply(store, f.Preselect, f.GuestOnly, Log));
                     else if (f.PicChanged)
@@ -3210,6 +3223,7 @@ namespace GaesteSchutz
                 st.Set("AbmeldenMin", "60");
                 st.Set("NeustartZeit", "04:00");
                 st.Set("Sperren", "1");
+                st.Set("Sprachwahl", "1");
                 Shot(new SettingsForm(st, 0), Path.Combine(dir, "6-einstellungen-browser" + sfx + ".png"));
                 Shot(new SettingsForm(st, 1), Path.Combine(dir, "7-einstellungen-hintergrund" + sfx + ".png"));
                 Shot(new SettingsForm(st, 4), Path.Combine(dir, "8-einstellungen-autostart" + sfx + ".png"));

@@ -201,15 +201,14 @@ namespace GaesteSchutz
         // tag = null: wieder Windows-Vorgabe (gesicherte Werte zurück)
         public static void ApplyGuestLanguage(Store store, string tag, Action<string> log)
         {
-            string klid = AdminKeyboard();
+            string klid = AdminKeyboard() ?? store.Get("GastSprTastatur");
             if (!Program.Demo)
             {
-                WithDefaultHive(root =>
-                {
-                    RestoreLanguage(root, store.Get);            // erst die vorige Auswahl rückgängig machen
-                    foreach (string n in LangBackupKeys) store.Remove(n);
-                    if (tag != null) WriteLanguage(root, tag, klid, store.Set);
-                });
+                if (klid != null) store.Set("GastSprTastatur", klid);
+                SetHiveLanguage(store, tag, klid);              // erst die vorige Auswahl rückgängig machen, dann neu
+                // Eine gerade laufende Sprachwahl eines Gastes ist damit erledigt
+                using (RegistryKey k = Registry.LocalMachine.CreateSubKey(ConfigKey))
+                    foreach (string n in new[] { "SprachTemp", "SprachTempVon", "SprachwunschOk", "SprachwechselAnmelden" }) k.DeleteValue(n, false);
             }
             else log("DEMO: " + L.T("Windows-Standardprofil würde geändert.", "il profilo predefinito di Windows verrebbe modificato.",
                                     "Windows default profile would be changed."));

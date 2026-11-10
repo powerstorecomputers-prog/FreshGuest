@@ -126,7 +126,7 @@ namespace GaesteSchutz
         {
             if (Program.Demo) return;
             RemoveTestLeftovers();
-            bool need = store.Enabled && File.Exists(Sys.InstalledExe) && (PreselectOn(store) || GuestOnlyOn(store) || GuestExtras.PictureOn(store));
+            bool need = store.Enabled && File.Exists(Sys.InstalledExe) && (PreselectOn(store) || GuestOnlyOn(store) || GuestExtras.PictureOn(store) || GuestExtras.ChoiceOn(store));
             if (!need) { StopAndRemoveTask(); RemovePolicy(); return; }
             StopRunning();
             string xml = TaskXml(Sys.InstalledExe);
@@ -149,7 +149,7 @@ namespace GaesteSchutz
             RemoveTestLeftovers();
             try { CfgSet("NurGuestFrei", null); } catch { }
             if (uninstall)
-                foreach (string n in new[] { "GastVorauswahl", "NurGuest", "NurGuestBestaetigt", "KachelBildTest" })
+                foreach (string n in new[] { "GastVorauswahl", "NurGuest", "NurGuestBestaetigt", "KachelBildTest", "GastSprachwahl", "SprachTemp", "SprachTempVon", "SprachwunschOk", "SprachwechselAnmelden" })
                     try { CfgSet(n, null); } catch { }
             try
             {
@@ -527,9 +527,12 @@ namespace GaesteSchutz
             }
             else lockedSince = null;
 
+            // Sprachwahl der Gäste: Wunsch übernehmen bzw. danach die Standardsprache zurück
+            try { LanguageTick(user, nobody, adminOn); } catch (Exception ex) { Log("Sprachwahl FEHLER: " + ex.Message); }
+
             // Neuer Anmeldebildschirm ohne angemeldeten Benutzer -> Helfer starten (einmal je Anmeldebildschirm)
             if (!nobody) lastUi = 0;
-            else if (ui != 0 && ui != lastUi && ready && (preselect || have || TilePic()))
+            else if (ui != 0 && ui != lastUi && ready && (preselect || have || TilePic() || CfgInt("SprachwechselAnmelden", 0) == 1))
             {
                 string cmd = "\"" + System.Reflection.Assembly.GetExecutingAssembly().Location + "\" --anmeldehelfer " + Process.GetCurrentProcess().Id + " " + ui;
                 string err = StartOnLogonDesktop(session, cmd);
@@ -576,6 +579,7 @@ namespace GaesteSchutz
                 Func<bool> stop = () => !Alive(parent) || !Alive(ui);
                 bool overlay = TilePic();
                 if (overlay) StartOverlay(stop);          // Gast-Profilbild über der Kachel „Guest“
+                if (CfgInt("SprachwechselAnmelden", 0) == 1) AutoSubmit(stop, locked);     // Gast hat die Sprache gewechselt
                 if (locked) { Log("Helfer (" + sb + "): warte auf " + HotkeyText); WaitHotkey(stop); }
                 else if (free) Log("Helfer (" + sb + "): freigeschaltet - keine Vorauswahl");
                 else if (CfgInt("GastVorauswahl", 1) == 1) Preselect(stop, sb.ToString());

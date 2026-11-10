@@ -40,6 +40,7 @@ namespace GaesteSchutz
         public int IdleMin;
         public string RestartTime = "";      // täglicher Neustart (für den Hinweis), leer = aus
         public string Lang4 = "";            // Code der vierten Sprache (fr, es, nl, pl, cs), leer = keine
+        public bool LangChoice;              // Knöpfe „Windows: Deutsch / Italiano / English“ zeigen
 
         // Felder je Sprache. "de" ist die Grundlage: Bleibt ein Feld in einer anderen Sprache leer, gilt der deutsche Eintrag.
         // ExtraName/Extra = frei benennbares Zusatzfeld (z. B. „Parkplatz“). Platz "4" = die vierte Sprache.
@@ -87,7 +88,7 @@ namespace GaesteSchutz
             using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey))
                 need = k != null && (!string.IsNullOrEmpty(Convert.ToString(k.GetValue("GastAutostart", ""))) ||
                                      ConfigInt(k, "GastWillkommen") == 1 || ConfigInt(k, "GastAbmeldenMin") > 0 ||
-                                     ConfigInt(k, "GastProfilbild") == 1 || ConfigInt(k, "GastHinweis") == 1);
+                                     ConfigInt(k, "GastProfilbild") == 1 || ConfigInt(k, "GastHinweis") == 1 || ConfigInt(k, "GastSprachwahl") == 1);
             if (need) Sys.CreateShortcut(StartupLnk, Sys.InstalledExe, "--gast-start");
             else
             {
@@ -199,7 +200,7 @@ namespace GaesteSchutz
         public static WelcomeInfo WelcomeFromStore(Store s)
         {
             var w = new WelcomeInfo { Wlan = s.Get("W_WLAN") ?? "", WlanPw = s.Get("W_WLANKennwort") ?? "", IdleMin = IdleMinutes(s),
-                RestartTime = RestartTime(s) ?? "", Lang4 = Lang4(s) };
+                RestartTime = RestartTime(s) ?? "", Lang4 = Lang4(s), LangChoice = s.Get("Sprachwahl") == "1" };
             foreach (string f in WelcomeInfo.LangFields)
                 foreach (string slot in WelcomeInfo.Slots) w.Set(f, slot, s.Get(WelcomeInfo.Key(f, slot)));
             return w;
@@ -274,6 +275,7 @@ namespace GaesteSchutz
                     idle = ConfigInt(k, "GastAbmeldenMin");
                     picture = ConfigInt(k, "GastProfilbild") == 1;
                     notice = ConfigInt(k, "GastHinweis") == 1;
+                    w.LangChoice = ConfigInt(k, "GastSprachwahl") == 1;
                     w.RestartTime = Convert.ToString(k.GetValue("GastNeustartZeit", ""));
                     w.Wlan = Convert.ToString(k.GetValue("W_WLAN", ""));
                     w.WlanPw = Convert.ToString(k.GetValue("W_WLANKennwort", ""));
@@ -283,7 +285,7 @@ namespace GaesteSchutz
                     w.Lang4 = GuestTexts.IsExtra(l4) ? l4 : "";
                     w.IdleMin = idle;
                 }
-                if (string.IsNullOrEmpty(target) && !welcome && idle <= 0 && !picture && !notice) return;
+                if (string.IsNullOrEmpty(target) && !welcome && idle <= 0 && !picture && !notice && !w.LangChoice) return;
                 string sid = null;
                 try
                 {
@@ -302,12 +304,13 @@ namespace GaesteSchutz
                     pic = new System.Threading.Thread(() => RefreshGuestPicture(sid)) { IsBackground = true };
                     pic.Start();
                 }
-                if (!welcome && idle <= 0 && !notice) { if (pic != null) pic.Join(); return; }
+                if (!welcome && idle <= 0 && !notice && !w.LangChoice) { if (pic != null) pic.Join(); return; }
 
                 L.Init(null);                          // Sprache des Gast-Kontos (Windows-Sprache)
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new GuestSession(welcome ? w : null, notice && !welcome ? w : null, idle, w.Lang4));
+                Application.Run(new GuestSession(welcome ? w : null, notice && !welcome ? w : null, idle, w.Lang4,
+                    w.LangChoice && !welcome && !notice));
             }
             catch { }
         }
@@ -322,12 +325,13 @@ namespace GaesteSchutz
         IdleWarnForm warn;
 
         // welcome: Willkommensfenster (enthält den Hinweis); notice: nur das Hinweis-Fenster
-        public GuestSession(WelcomeInfo welcome, WelcomeInfo notice, int idleMin, string lang4)
+        public GuestSession(WelcomeInfo welcome, WelcomeInfo notice, int idleMin, string lang4, bool langOnly)
         {
             this.idleMin = idleMin;
             this.lang4 = lang4 ?? "";
             if (welcome != null) ShowFirst(new WelcomeForm(welcome, false));
-            else if (notice != null) ShowFirst(new NoticeForm(notice.IdleMin, notice.RestartTime, this.lang4, false));
+            else if (notice != null) ShowFirst(new NoticeForm(notice.IdleMin, notice.RestartTime, this.lang4, false, notice.LangChoice));
+            else if (langOnly) ShowFirst(new LanguageForm(false));
             else if (idleMin <= 0) ExitThread();
             if (idleMin > 0)
             {
@@ -568,14 +572,15 @@ namespace GaesteSchutz
     {
         const int W = 700;
 
-        public static void Preview(IWin32Window owner, int idleMin, string restartTime, string lang4)
+        public static void Preview(IWin32Window owner, int idleMin, string restartTime, string lang4, bool langChoice)
         {
-            using (var f = new NoticeForm(idleMin, restartTime, lang4, true)) f.ShowDialog(owner);
+            using (var f = new NoticeForm(idleMin, restartTime, lang4, true, langChoice)) f.ShowDialog(owner);
         }
 
-        public NoticeForm(int idleMin, string restartTime, string lang4, bool preview)
+        public NoticeForm(int idleMin, string restartTime, string lang4, bool preview, bool langChoice = false)
         {
-            Ui.Style(this, W, 300);
+            int side = langChoice && GuestSwitch.Available() ? GuestSwitch.SideWidth : 0;
+            Ui.Style(this, W + side, 300);
             MinimizeBox = false;
             if (preview) { StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false; }
             else TopMost = true;
@@ -596,7 +601,8 @@ namespace GaesteSchutz
             Controls.Add(ok);
             AcceptButton = ok;
             CancelButton = ok;
-            ClientSize = new Size(W, y + 44 + 18);
+            ClientSize = new Size(W + side, y + 44 + 18);
+            if (side > 0) GuestSwitch.AddSide(this, W, side, preview);
             ActiveControl = ok;
         }
 
@@ -609,6 +615,7 @@ namespace GaesteSchutz
         readonly WelcomeInfo info;
         readonly bool preview;
         readonly int W, cols;       // breiter Bildschirm: Sprachen in zwei Spalten, sonst wird das Fenster zu hoch
+        readonly int side;          // Spalte rechts mit den Sprachen für Windows (0 = keine)
 
         public static void Preview(IWin32Window owner, WelcomeInfo info)
         {
@@ -619,9 +626,10 @@ namespace GaesteSchutz
         {
             this.info = info;
             this.preview = preview;
-            cols = Screen.PrimaryScreen.WorkingArea.Width >= 1100 ? 2 : 1;
+            side = info.LangChoice && GuestSwitch.Available() ? GuestSwitch.SideWidth : 0;
+            cols = Screen.PrimaryScreen.WorkingArea.Width >= 1100 + side ? 2 : 1;
             W = cols == 2 ? 1040 : 700;
-            Ui.Style(this, W, 400);
+            Ui.Style(this, W + side, 400);
             MinimizeBox = false;
             if (preview) { StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false; }
             else TopMost = true;
@@ -682,7 +690,8 @@ namespace GaesteSchutz
             Controls.Add(ok);
             AcceptButton = ok;
             CancelButton = ok;
-            ClientSize = new Size(W, y + 44 + 18);
+            ClientSize = new Size(W + side, y + 44 + 18);
+            if (side > 0) GuestSwitch.AddSide(this, W, side, preview);
             ActiveControl = ok;
         }
 
@@ -1058,7 +1067,8 @@ namespace GaesteSchutz
             if (RestartTime(store) != null) step("Neustart", () => ApplyDailyRestart(store, null, log));
             if (Locks(store) != 0 || GuestPrinter(store) != null) step("Sperren", () => ApplyLocksAndPrinter(store, 0, null, log));
             if (PictureOn(store)) step("Profilbild", () => RemovePicture(store, log));
-            if (GuestLanguage(store) != null) step("Sprache", () => ApplyGuestLanguage(store, null, log));
+            if (ChoiceOn(store)) step("Sprachwahl", () => ApplyGuestChoice(store, false, log));
+            if (GuestLanguage(store) != null || store.Get("GastSpr_Tag") != null) step("Sprache", () => ApplyGuestLanguage(store, null, log));
             if (GuestOnlyTile()) step("Anmeldung", () => ApplyGuestOnlyTile(false, log));
         }
 
