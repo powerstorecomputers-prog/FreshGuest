@@ -2,13 +2,13 @@
   <img src="logo/FreshGuest-Schriftzug-hell.png" alt="FreshGuest" width="420">
 </p>
 
-<p align="center"><b>A fresh, empty Windows account for every guest – for holiday flats, B&amp;Bs and guest PCs.</b></p>
+<p align="center"><b>A fresh, empty Windows account for every guest – for holiday flats, hotels, internet cafés and every PC that strangers use one after another.</b></p>
 
 <p align="center"><b>⚠️ Requires Windows 11 Pro.</b> Windows Home does not work.</p>
 
-> 🇩🇪 **Deutsch:** FreshGuest richtet einen Windows-PC für Feriengäste ein. Gäste klicken auf dem Anmeldebildschirm nur auf „Anmelden“; beim Abmelden oder Neustart löscht Windows alles, was der Gast hinterlassen hat. **Nur für Windows 11 Pro** – mit Windows Home funktioniert es nicht. Die ausführliche Anleitung (DE/IT/EN) steckt im Programm und liegt jedem [Release](../../releases) bei.
+> 🇩🇪 **Deutsch:** FreshGuest richtet einen Windows-PC für Feriengäste ein. Gäste klicken auf dem Anmeldebildschirm nur auf „Anmelden“; beim Abmelden oder Neustart löscht Windows alles, was der Gast hinterlassen hat. **Nur für Windows 11 Pro** – mit Windows Home funktioniert es nicht. Passt für Ferienwohnungen, Hotels, Internetcafés, Bibliotheken, Wartezimmer und überall, wo Fremde nacheinander am selben PC sitzen. Die ausführliche Anleitung (DE/IT/EN) steckt im Programm und liegt jedem [Release](../../releases) bei.
 >
-> 🇮🇹 **Italiano:** FreshGuest prepara un PC Windows per gli ospiti. Gli ospiti cliccano solo su «Accedi» nella schermata di accesso; alla disconnessione o al riavvio Windows cancella tutto ciò che hanno lasciato. **Solo per Windows 11 Pro** – con Windows Home non funziona. La guida completa (DE/IT/EN) è inclusa nel programma e in ogni [release](../../releases).
+> 🇮🇹 **Italiano:** FreshGuest prepara un PC Windows per gli ospiti. Gli ospiti cliccano solo su «Accedi» nella schermata di accesso; alla disconnessione o al riavvio Windows cancella tutto ciò che hanno lasciato. **Solo per Windows 11 Pro** – con Windows Home non funziona. Adatto a case vacanze, hotel, internet café, biblioteche, sale d'attesa e ovunque persone diverse usino lo stesso PC una dopo l'altra. La guida completa (DE/IT/EN) è inclusa nel programma e in ogni [release](../../releases).
 
 ---
 
@@ -30,6 +30,20 @@ Every window the guest sees is shown in **German, Italian and English at the sam
 language) – you never know who is sitting at the PC:
 
 ![Welcome window for guests](bilder/13-gast-willkommen-en.png)
+
+## Where it fits
+
+Wherever strangers use the same PC one after another:
+
+- **Holiday flats, B&Bs, hotels, hostels** – a guest PC or the PC in the lobby
+- **Internet cafés and copy shops**
+- **Libraries and public PCs** in town halls or community centres
+- **Waiting rooms and reception areas** – garages, doctors' surgeries, car dealers
+- **Co-working spaces, trade-fair stands, clubhouses and youth centres**
+
+Good to know for internet cafés: FreshGuest is set up **on each PC separately** – there is no central management
+for many PCs – and it does **no billing or time limits** per minute, only the automatic shutdown after idle time.
+Commercial use is explicitly allowed (see [License](#license)).
 
 ## Guest settings
 
