@@ -41,8 +41,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("PC für Feriengäste: Gast-Daten werden beim Neustart gelöscht")]
 [assembly: AssemblyCompany("PowerStore Computers")]
 [assembly: AssemblyCopyright("© 2026 PowerStore Computers")]
-[assembly: AssemblyVersion("1.23.0.0")]
-[assembly: AssemblyFileVersion("1.23.0.0")]
+[assembly: AssemblyVersion("1.24.0.0")]
+[assembly: AssemblyFileVersion("1.24.0.0")]
 
 namespace GaesteSchutz
 {
@@ -73,7 +73,7 @@ namespace GaesteSchutz
     static class Program
     {
         public const string Name = "FreshGuest";
-        public const string Version = "1.23";
+        public const string Version = "1.24";
         public const string Copyright = "© 2026 PowerStore Computers";
         public static bool Demo;
         public static bool CleanShots;   // Bilder für die Anleitung: ohne DEMO-Hinweise
@@ -886,12 +886,13 @@ namespace GaesteSchutz
 
         // Symbole liegen auf dem Desktop des Windows-Standardprofils -> jeder NEUE Gast hat sie, dein Konto nicht.
         // (Bis Version 1.7 lagen sie auf dem öffentlichen Desktop – die werden beim Aufräumen mit entfernt.)
+        // „Internet (Firefox)“ wird seit 1.24 nicht mehr angelegt (Firefox bleibt in seiner Installationssprache) –
+        // steht nur noch in der Liste, damit ein altes Symbol beim Aufräumen entfernt wird.
         static readonly string[] LnkNames = { "Internet (Edge).lnk", "Internet (Chrome).lnk", "Internet (Firefox).lnk" };
         static string PublicDesktop { get { return Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory); } }
         static string GuestDesktop { get { return GuestExtras.DefaultDesktop; } }
         static string EdgeLnk { get { return Path.Combine(GuestDesktop, LnkNames[0]); } }
         static string ChromeLnk { get { return Path.Combine(GuestDesktop, LnkNames[1]); } }
-        static string FirefoxLnk { get { return Path.Combine(GuestDesktop, LnkNames[2]); } }
 
         // Nur für das eigene Konto installiert (AppData) -> Gäste haben diesen Browser nicht
         static bool OnlyForMe(string relExe)
@@ -917,14 +918,12 @@ namespace GaesteSchutz
             };
             one("Edge", EdgeExe, EdgeLnk, true);
             one("Chrome", ChromeExe, ChromeLnk, true);
-            if (all) one("Firefox", FirefoxExe, FirefoxLnk, false);
             if (made.Count > 0)
                 log(L.T("✔ Symbole auf dem Desktop der Gäste: ", "✔ Icone sul desktop degli ospiti: ", "✔ Icons on the guests' desktop: ") +
                     string.Join(", ", made.Select(n => "Internet (" + n + ")").ToArray()));
             foreach (string n in missing)
             {
-                bool mine = (n == "Chrome" && OnlyForMe(@"Google\Chrome\Application\chrome.exe")) ||
-                            (n == "Firefox" && OnlyForMe(@"Mozilla Firefoxirefox.exe"));
+                bool mine = n == "Chrome" && OnlyForMe(@"Google\Chrome\Application\chrome.exe");
                 if (mine)
                     log("⚠ " + n + L.T(" ist nur für dein Konto installiert – Gäste haben ihn nicht. Bitte für alle Benutzer installieren.",
                                        " è installato solo per il tuo account – gli ospiti non lo hanno. Installarlo per tutti gli utenti.",
@@ -2062,9 +2061,9 @@ namespace GaesteSchutz
             chkStart.CheckedChanged += (s, e) => txtUrl.Enabled = chkStart.Checked;
             txtUrl.Enabled = chkStart.Checked;
             var note = AddInfo(tBrowser, L.T(
-                "Firefox öffnet die Startseite immer. Edge und Chrome öffnen sie über ihr Symbol „Internet (…)“ auf dem Desktop.",
-                "Firefox apre sempre la pagina iniziale. Edge e Chrome la aprono tramite la loro icona «Internet (…)» sul desktop.",
-                "Firefox always opens the start page. Edge and Chrome open it via their \"Internet (…)\" icon on the desktop."), 268, 40);
+                "Edge und Chrome öffnen die Startseite über ihr Symbol „Internet (…)“ auf dem Desktop. Firefox bekommt kein Symbol (bleibt in einer Sprache).",
+                "Edge e Chrome aprono la pagina iniziale tramite la loro icona «Internet (…)» sul desktop. Firefox non riceve icone (resta in una sola lingua).",
+                "Edge and Chrome open the start page via their \"Internet (…)\" desktop icon. Firefox gets no icon (it stays in one language)."), 268, 40);
             note.Left = 32; note.Width = 474;
             AddInfo(tBrowser, L.T("Alle Häkchen weg + Übernehmen = Browser-Einstellungen entfernen.",
                 "Togli tutte le spunte + Applica = rimuovi le impostazioni del browser.",
