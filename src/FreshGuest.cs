@@ -1,5 +1,6 @@
 // FreshGuest – PC für Feriengäste  (Deutsch / Italiano / English)
-// © 2026 PowerStore Computers – Lizenz: siehe LICENSE (MIT + Commons Clause: kein Verkauf)
+// © 2026 PowerStore Computers – freie Software unter der GNU GPL v3.0 oder neuer (siehe LICENSE)
+// SPDX-License-Identifier: GPL-3.0-or-later
 // (früher "Gäste-Schutz"; interne Speicherorte heißen weiter GaesteSchutz/GaestePC)
 // Grafische Oberfläche für den Windows "Shared PC Mode" (Gastkonto wird beim
 // Abmelden/Neustart gelöscht). Die eigentliche Systemarbeit macht GaestePC.ps1,

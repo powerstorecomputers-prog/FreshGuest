@@ -1,5 +1,6 @@
 // FreshGuest – Anmeldebildschirm
 // © 2026 PowerStore Computers
+// SPDX-License-Identifier: GPL-3.0-or-later
 //
 // A) „Guest“ automatisch auswählen (Standard):
 //    Windows wählt unter Shared PC immer „Anderer Benutzer“ vor – das lässt sich per Richtlinie nicht ändern.

@@ -1,3 +1,5 @@
+// © 2026 PowerStore Computers
+// SPDX-License-Identifier: GPL-3.0-or-later
 // FreshGuest – Zusatzfunktionen für Gäste (ab Version 1.5)
 //   Desktop      : Dateien/Verknüpfungen auf den Desktop jedes neuen Gastes (Windows-Standardprofil)
 //   Willkommen   : Fenster beim Anmelden mit WLAN, Check-out, Kontakt + Hinweis „alles wird gelöscht“

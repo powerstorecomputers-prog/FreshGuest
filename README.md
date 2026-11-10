@@ -126,9 +126,14 @@ risk and test it before handing the PC to guests.
 
 © 2026 PowerStore Computers
 
-FreshGuest is free to use, copy and modify – also on PCs in a holiday flat, hotel or other business – under the
-[MIT License with the Commons Clause](LICENSE). **You may not sell it:** offering FreshGuest itself, or a product
-or service whose value comes mainly from FreshGuest, for a fee is not permitted.
+FreshGuest is free software, licensed under the [GNU General Public License v3.0 or later](LICENSE).
+You may use, copy and modify it free of charge – also on PCs in a holiday flat, hotel or other business.
+Anyone who passes FreshGuest or a modified version on – for free or for money – must include the complete
+source code under the same license and keep the copyright notice.
 
-> 🇩🇪 Kostenlos nutzbar, auch gewerblich (z. B. in der Ferienwohnung) – aber **kein Verkauf** des Programms.
-> 🇮🇹 Uso gratuito, anche in attività commerciali (ad es. casa vacanze) – ma **vietata la vendita** del programma.
+**Name and logo:** The GPL covers the code, not the name. Modified versions must not be distributed under the name
+“FreshGuest” or with the FreshGuest logo.
+
+> 🇩🇪 Freie Software unter der GPL-3.0: kostenlos nutzbar und veränderbar, auch gewerblich (z. B. in der Ferienwohnung). Wer FreshGuest weitergibt – auch verändert oder gegen Geld –, muss den kompletten Quelltext unter derselben Lizenz mitgeben. Veränderte Fassungen dürfen nicht „FreshGuest“ heißen und nicht das FreshGuest-Logo tragen.
+>
+> 🇮🇹 Software libero con licenza GPL-3.0: uso e modifica gratuiti, anche in attività commerciali (ad es. casa vacanze). Chi distribuisce FreshGuest – anche modificato o a pagamento – deve fornire il codice sorgente completo con la stessa licenza. Le versioni modificate non possono chiamarsi «FreshGuest» né usare il logo FreshGuest.

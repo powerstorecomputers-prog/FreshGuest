@@ -1,5 +1,6 @@
 // FreshGuest – Gast-Profilbild auf der Kachel „Guest“ des Anmeldebildschirms
 // © 2026 PowerStore Computers
+// SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Das Bild der Kachel (Figur mit Fragezeichen) ist fest in Windows.SharedPC.CredentialProvider.dll eingebaut.
 // Einziger Weg ohne Eingriff in Windows-Dateien: Der Helfer, der ohnehin auf dem Anmelde-Desktop läuft, legt
