@@ -31,8 +31,8 @@ and gives it a simple, password-protected interface:
 |---|---|
 | ![Protection on](bilder/2-schutz-an-en.png) | ![Welcome settings](bilder/10-einstellungen-willkommen-en.png) |
 
-Every window the guest sees is shown in **German, Italian and English at the same time** (plus an optional fourth
-language) – you never know who is sitting at the PC:
+Every window the guest sees is shown in **German, Italian, English and Spanish at the same time** – you never know
+who is sitting at the PC:
 
 ![Welcome window for guests](bilder/13-gast-willkommen-en.png)
 
@@ -59,10 +59,9 @@ All settings apply to guests only – your own account stays as it is.
 - **Desktop** – files, programs and links every new guest finds on the desktop
 - **Autostart** – open a page or program when a guest signs in
 - **Welcome window** – Wi-Fi name and password; check-out, contact, an extra field of your choice and your own text, each per language
-- **Fourth language** for all guest windows: French, Spanish, Dutch, Polish or Czech
 - **Automatic** – shut the PC down when a guest leaves it unused (after a 60-second “Still there?”), restart daily at a fixed time, show a notice that the PC is reset after every guest
 - **Locks & printer** – lock Control Panel / Settings, command prompt, registry editor, installing programs and running programs from Downloads; default printer for guests
-- **Language** – the Windows display language for guests, chosen from the language packs installed on the PC (otherwise guests get the language Windows was installed with); optionally guests pick their own language from a column of flags in the welcome window – the PC signs out briefly and back in, and Windows is in that language
+- **Language** – the Windows display language for guests, chosen from the language packs installed on the PC (otherwise guests get the language Windows was installed with); optionally guests pick German, Italian, English or Spanish from a column of flag buttons in the welcome window – the PC signs out briefly and back in, and Windows is in that language
 - **Sign-in** – “Guest” is selected automatically; optionally show **only** “Guest” and reach your own account with **Ctrl + Alt + F** on the sign-in screen
 
 | | |

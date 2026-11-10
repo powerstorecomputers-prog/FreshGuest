@@ -41,8 +41,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("PC für Feriengäste: Gast-Daten werden beim Neustart gelöscht")]
 [assembly: AssemblyCompany("PowerStore Computers")]
 [assembly: AssemblyCopyright("© 2026 PowerStore Computers")]
-[assembly: AssemblyVersion("1.22.0.0")]
-[assembly: AssemblyFileVersion("1.22.0.0")]
+[assembly: AssemblyVersion("1.23.0.0")]
+[assembly: AssemblyFileVersion("1.23.0.0")]
 
 namespace GaesteSchutz
 {
@@ -73,7 +73,7 @@ namespace GaesteSchutz
     static class Program
     {
         public const string Name = "FreshGuest";
-        public const string Version = "1.22";
+        public const string Version = "1.23";
         public const string Copyright = "© 2026 PowerStore Computers";
         public static bool Demo;
         public static bool CleanShots;   // Bilder für die Anleitung: ohne DEMO-Hinweise
@@ -2000,7 +2000,7 @@ namespace GaesteSchutz
         // Willkommen
         CheckBox chkWelcome2;
         TextBox txtWlan, txtWlanPw, txtCheckout, txtContact, txtText, txtExtraName, txtExtra;
-        ComboBox cbEditLang, cbLang4;
+        ComboBox cbEditLang;
         WelcomeInfo editInfo;                 // alle Texte aller Sprachen, während das Fenster offen ist
         string editSlot = "de";               // Sprache, deren Felder gerade zu sehen sind
         bool loadingWelcome;
@@ -2302,14 +2302,8 @@ namespace GaesteSchutz
 
             // Ab hier je Sprache: erst die Sprache wählen, dann die Felder ausfüllen
             t.Controls.Add(Ui.MakeLabel(L.T("Texte in Sprache:", "Testi in lingua:", "Texts in language:"), 32, 135, 150, 22));
-            cbEditLang = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(186, 132), Width = 140 };
-            cbLang4 = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(336, 132), Width = 170 };
-            string p4 = L.T("4. Sprache: ", "4ª lingua: ", "4th language: ");
-            cbLang4.Items.Add(p4 + L.T("keine", "nessuna", "none"));
-            foreach (GuestLang gl in GuestTexts.Extras) cbLang4.Items.Add(p4 + gl.Name);
-            cbLang4.SelectedIndex = editInfo.Lang4.Length > 0 ? GuestTexts.Extras.ToList().FindIndex(gl => gl.Code == editInfo.Lang4) + 1 : 0;
+            cbEditLang = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(186, 132), Width = 180 };
             t.Controls.Add(cbEditLang);
-            t.Controls.Add(cbLang4);
             txtCheckout = WelcomeRow(t, "Check-out:", 164, "");
             txtContact = WelcomeRow(t, L.T("Kontakt:", "Contatto:", "Contact:"), 194, "");
             // Zusatzfeld: links die eigene Beschriftung, rechts der Inhalt
@@ -2325,9 +2319,9 @@ namespace GaesteSchutz
             btnPreview.Click += (s, e) => WelcomeForm.Preview(this, CurrentWelcome());
             t.Controls.Add(btnPreview);
             Indent(AddInfo(t, L.T(
-                "Zusatzfeld: links Beschriftung (z. B. „Parkplatz“), rechts Inhalt. Leer in einer Sprache = es gilt der deutsche Eintrag. Die 4. Sprache gilt für alle Gast-Fenster.",
-                "Campo extra: a sinistra l'etichetta (ad es. «Parcheggio»), a destra il contenuto. Vuoto in una lingua = vale il testo tedesco. La 4ª lingua vale per tutte le finestre per gli ospiti.",
-                "Extra field: label on the left (e.g. \"Parking\"), content on the right. Empty in one language = the German entry is used. The 4th language applies to all guest windows."),
+                "Zusatzfeld: links Beschriftung (z. B. „Parkplatz“), rechts Inhalt. Leer in einer Sprache = es gilt der deutsche Eintrag. Sprachen: Deutsch, Italiano, English, Español.",
+                "Campo extra: a sinistra l'etichetta (ad es. «Parcheggio»), a destra il contenuto. Vuoto in una lingua = vale il testo tedesco. Lingue: Deutsch, Italiano, English, Español.",
+                "Extra field: label on the left (e.g. \"Parking\"), content on the right. Empty in one language = the German entry is used. Languages: Deutsch, Italiano, English, Español."),
                 318, 78), 32);
 
             FillEditLangs();
@@ -2336,33 +2330,22 @@ namespace GaesteSchutz
             {
                 if (loadingWelcome) return;
                 StoreWelcomeFields();
-                editSlot = cbEditLang.SelectedIndex < 3 ? WelcomeInfo.Slots[Math.Max(0, cbEditLang.SelectedIndex)] : "4";
-                LoadWelcomeFields();
-            };
-            cbLang4.SelectedIndexChanged += (s, e) =>
-            {
-                StoreWelcomeFields();
-                editInfo.Lang4 = CurrentLang4();
-                if (editSlot == "4" && editInfo.Lang4.Length == 0) editSlot = "de";
-                FillEditLangs();
+                editSlot = WelcomeInfo.Slots[Math.Max(0, cbEditLang.SelectedIndex)];
                 LoadWelcomeFields();
             };
             chkWelcome2.CheckedChanged += (s, e) => UpdateWelcomeEnabled();
             UpdateWelcomeEnabled();
         }
 
-        string CurrentLang4()
-        {
-            return cbLang4.SelectedIndex > 0 ? GuestTexts.Extras.ElementAt(cbLang4.SelectedIndex - 1).Code : "";
-        }
+        string CurrentLang4() { return ""; }
 
-        // Auswahl „Texte in Sprache“: Deutsch, Italiano, English (+ die gewählte vierte)
+        // Auswahl „Texte in Sprache“: Deutsch, Italiano, English, Español
         void FillEditLangs()
         {
             loadingWelcome = true;
             cbEditLang.Items.Clear();
             foreach (GuestLang gl in GuestTexts.Active(editInfo.Lang4)) cbEditLang.Items.Add(gl.Name);
-            cbEditLang.SelectedIndex = editSlot == "4" ? 3 : Array.IndexOf(WelcomeInfo.Slots, editSlot);
+            cbEditLang.SelectedIndex = Math.Max(0, Array.IndexOf(WelcomeInfo.Slots, editSlot));
             loadingWelcome = false;
         }
 
@@ -2438,9 +2421,9 @@ namespace GaesteSchutz
             cbIdle.SelectedIndex = ii < 0 ? 2 : ii;
             t.Controls.Add(cbIdle);
             Indent(AddInfo(t, L.T(
-                "Vorher erscheint 60 Sekunden lang „Noch da?“ (in drei Sprachen). Klickt niemand, fährt der PC herunter. Läuft ein Video oder Film, passiert nichts.",
-                "Prima appare per 60 secondi «Ci sei ancora?» (in tre lingue). Se nessuno clicca, il PC si spegne. Se è in corso un video o un film, non succede nulla.",
-                "First \"Still there?\" appears for 60 seconds (in three languages). If nobody clicks, the PC shuts down. If a video or film is playing, nothing happens."), 128, 44), 32);
+                "Vorher erscheint 60 Sekunden lang „Noch da?“ (in vier Sprachen). Klickt niemand, fährt der PC herunter. Läuft ein Video oder Film, passiert nichts.",
+                "Prima appare per 60 secondi «Ci sei ancora?» (in quattro lingue). Se nessuno clicca, il PC si spegne. Se è in corso un video o un film, non succede nulla.",
+                "First \"Still there?\" appears for 60 seconds (in four languages). If nobody clicks, the PC shuts down. If a video or film is playing, nothing happens."), 128, 44), 32);
 
             string time = GuestExtras.RestartTime(store);
             chkRestart = AddCheck(t, L.T("PC jeden Tag neu starten um:", "Riavvia il PC ogni giorno alle:", "Restart the PC every day at:"), 200, time != null);
@@ -2452,7 +2435,7 @@ namespace GaesteSchutz
             Indent(AddInfo(t, L.T("Wer dann angemeldet ist, bekommt 5 Minuten vorher eine Meldung von Windows. Der PC muss dafür eingeschaltet sein.",
                 "Chi è connesso riceve un avviso di Windows 5 minuti prima. Il PC deve essere acceso.",
                 "Whoever is signed in gets a Windows message 5 minutes before. The PC must be switched on."), 266, 44), 32);
-            // Hinweis-Fenster für Gäste (fester Text in drei Sprachen)
+            // Hinweis-Fenster für Gäste (fester Text in vier Sprachen)
             chkNotice = AddCheck(t, L.T("Hinweis für Gäste beim Anmelden zeigen", "Mostra un avviso agli ospiti all'accesso",
                 "Show a notice to guests at sign-in"), 316, GuestExtras.NoticeOn(store));
             var noticeInfo = Indent(AddInfo(t, L.T(
@@ -3220,6 +3203,7 @@ namespace GaesteSchutz
                 st.Set("W_ExtraName", "Parkplatz"); st.Set("W_ExtraName_it", "Parcheggio"); st.Set("W_ExtraName_en", "Parking");
                 st.Set("W_Extra", "Nr. 12 im Hof"); st.Set("W_Extra_it", "n. 12 nel cortile"); st.Set("W_Extra_en", "No. 12 in the yard");
                 st.Set("W_Text", "Schönen Urlaub in Südtirol!"); st.Set("W_Text_it", "Buone vacanze in Alto Adige!"); st.Set("W_Text_en", "Enjoy your holiday in South Tyrol!");
+                st.Set("W_Checkout_es", "10:00 h"); st.Set("W_ExtraName_es", "Aparcamiento"); st.Set("W_Extra_es", "n.º 12 en el patio"); st.Set("W_Text_es", "¡Felices vacaciones en el Tirol del Sur!");
                 st.Set("AbmeldenMin", "60");
                 st.Set("NeustartZeit", "04:00");
                 st.Set("Sperren", "1");

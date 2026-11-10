@@ -65,14 +65,14 @@ namespace GaesteSchutz
             if (on) store.Set("Sprachwahl", "1"); else store.Remove("Sprachwahl");
             store.Save();
             if (!Program.Demo) SignIn.Sync(store, log);
-            int count = InstalledUiLanguages().Count;
+            int count = GuestSwitch.ChoiceLanguages().Count;
             log(on ? L.T("✔ Gäste können die Windows-Sprache selbst wählen (", "✔ Gli ospiti possono scegliere la lingua di Windows (",
                          "✔ Guests can choose the Windows language themselves (") + count + L.T(" Sprachen).", " lingue).", " languages).")
                    : L.T("Sprachwahl für Gäste aus.", "Scelta della lingua per gli ospiti disattivata.", "Language choice for guests off."));
             if (on && count < 2)
-                log(L.T("   Hinweis: Auf diesem PC ist nur eine Sprache installiert – es gibt noch nichts zu wählen.",
-                        "   Nota: su questo PC è installata una sola lingua – non c'è ancora nulla da scegliere.",
-                        "   Note: only one language is installed on this PC – there is nothing to choose yet."));
+                log(L.T("   Hinweis: Von Deutsch, Italienisch, Englisch und Spanisch ist auf diesem PC höchstens ein Sprachpaket installiert – es gibt noch nichts zu wählen.",
+                        "   Nota: di tedesco, italiano, inglese e spagnolo su questo PC è installato al massimo un pacchetto di lingua – non c'è ancora nulla da scegliere.",
+                        "   Note: of German, Italian, English and Spanish at most one language pack is installed on this PC – there is nothing to choose yet."));
         }
     }
 
@@ -130,7 +130,7 @@ namespace GaesteSchutz
                     catch { }
                 if (!string.IsNullOrEmpty(wish))
                 {
-                    if (!GuestExtras.InstalledUiLanguages().Contains(wish)) Log("Sprachwunsch abgelehnt (nicht installiert): " + wish);
+                    if (!GuestSwitch.ChoiceLanguages().Contains(wish)) Log("Sprachwunsch abgelehnt (nicht installiert oder nicht erlaubt): " + wish);
                     else
                         try
                         {
@@ -236,16 +236,6 @@ namespace GaesteSchutz
                             "Al momento non è stato possibile cambiare la lingua. Riprova più tardi." } },
             { "en", new[] { "Windows will be switched to English. The PC signs out briefly and signs straight back in (about a minute). Everything you have done so far will be deleted.\n\nSwitch now?",
                             "The language could not be switched right now. Please try again later." } },
-            { "fr", new[] { "Windows va passer en français. Le PC se déconnecte un instant puis se reconnecte aussitôt (environ une minute). Tout ce que vous avez fait jusqu'ici sera supprimé.\n\nChanger maintenant ?",
-                            "Impossible de changer la langue pour le moment. Veuillez réessayer plus tard." } },
-            { "es", new[] { "Windows se cambiará a español. El PC cerrará la sesión un momento y volverá a iniciarla enseguida (aprox. un minuto). Todo lo que hayas hecho hasta ahora se borrará.\n\n¿Cambiar ahora?",
-                            "No se ha podido cambiar el idioma en este momento. Inténtalo más tarde." } },
-            { "nl", new[] { "Windows wordt op Nederlands gezet. De pc meldt zich kort af en meteen weer aan (ongeveer een minuut). Alles wat je tot nu toe hebt gedaan, wordt gewist.\n\nNu omschakelen?",
-                            "De taal kon nu niet worden gewijzigd. Probeer het later opnieuw." } },
-            { "pl", new[] { "Windows zostanie przełączony na język polski. Komputer na chwilę się wyloguje i od razu zaloguje ponownie (około minuty). Wszystko, co do tej pory zrobiłeś, zostanie usunięte.\n\nPrzełączyć teraz?",
-                            "Nie udało się teraz zmienić języka. Spróbuj ponownie później." } },
-            { "cs", new[] { "Windows se přepne do češtiny. Počítač se na chvíli odhlásí a hned znovu přihlásí (asi minutu). Vše, co jste dosud udělali, bude smazáno.\n\nPřepnout nyní?",
-                            "Jazyk teď nebylo možné přepnout. Zkuste to prosím později." } },
         };
 
         // Kurzer Name auf dem Knopf: „Deutsch“, „Italiano“ … (bei zwei Varianten derselben Sprache mit Land)
@@ -265,7 +255,16 @@ namespace GaesteSchutz
         public const int SideWidth = 236;
 
         // Gibt es etwas zu wählen? (mindestens zwei Sprachpakete)
-        public static bool Available() { return GuestExtras.InstalledUiLanguages().Count >= 2; }
+        public static bool Available() { return ChoiceLanguages().Count >= 2; }
+
+        // Zur Wahl für Gäste: nur Deutsch, Italienisch, Englisch und Spanisch (sofern das Sprachpaket installiert ist)
+        public static readonly string[] Allowed = { "de", "it", "en", "es" };
+        public static List<string> ChoiceLanguages()
+        {
+            return GuestExtras.InstalledUiLanguages()
+                .Where(t => Allowed.Contains(t.Split('-')[0].ToLowerInvariant()))
+                .OrderBy(t => Array.IndexOf(Allowed, t.Split('-')[0].ToLowerInvariant())).ToList();
+        }
 
         public static void AddSide(Form f, int x, int w, bool preview)
         {
@@ -279,13 +278,13 @@ namespace GaesteSchutz
         // Spalte rechts: „Windows“ + je Sprache ein Knopf mit Flagge und Namen (untereinander)
         public static Panel MakeColumn(Form f, int x, int y, int w, bool preview)
         {
-            List<string> langs = GuestExtras.InstalledUiLanguages();
+            List<string> langs = ChoiceLanguages();
             string current = CultureInfo.CurrentUICulture.Name;
             var p = new Panel { Location = new Point(x, y), Width = w, BackColor = Ui.Surface };
             var t = Ui.MakeLabel("Windows", 18, 16, w - 36, 30);
             t.Font = new Font("Segoe UI Semibold", 14f);
             p.Controls.Add(t);
-            var s = Ui.MakeLabel("Sprache · Lingua · Language\r\nIdioma · Langue", 18, 48, w - 36, 40);
+            var s = Ui.MakeLabel("Sprache · Lingua\r\nLanguage · Idioma", 18, 48, w - 36, 40);
             s.ForeColor = Ui.Muted;
             p.Controls.Add(s);
             int by = 98;
