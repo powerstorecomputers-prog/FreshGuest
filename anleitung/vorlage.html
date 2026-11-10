@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="de" data-start-lang="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FreshGuest – Anleitung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F5FB;
+    --surface: #FFFFFF;
+    --ink: #16123A;
+    --muted: #5B5880;
+    --line: #DEDCF0;
+    --violet: #5B2FD6;
+    --cyan: #22E4FF;
+    --pink: #FF3D9A;
+    --night: #120D38;
+    --ok: #188038;
+    --warn: #E37400;
+    --off: #5F6368;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 17px/1.6 "Segoe UI", system-ui, sans-serif; }
+  header { background: linear-gradient(90deg, #1F165C, #0A091E); color: #fff; position: relative; }
+  header::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+                  background: linear-gradient(90deg, var(--cyan), #8B5CF6, var(--pink)); }
+  .bar { max-width: 880px; margin: 0 auto; padding: 18px 20px 22px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .bar svg { width: 64px; height: 64px; flex: none; }
+  .brand { font-family: "Chakra Petch", "Segoe UI Semibold", sans-serif; font-weight: 700; font-size: 34px; line-height: 1;
+           background: linear-gradient(90deg, var(--cyan), #A78BFA, #FF4FB0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .brand small { display: block; font: 15px/1.4 "Segoe UI", sans-serif; color: #C8C0FF; -webkit-text-fill-color: #C8C0FF; margin-top: 6px; }
+  .langs { margin-left: auto; display: flex; border: 1px solid #4B3FA0; border-radius: 10px; overflow: hidden; }
+  .langs button { background: transparent; color: #D9D4FF; border: 0; padding: 8px 14px; font: 600 15px "Segoe UI", sans-serif; cursor: pointer; }
+  .langs button[aria-pressed="true"] { background: var(--violet); color: #fff; }
+  .langs button:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+  main { max-width: 880px; margin: 0 auto; padding: 8px 20px 60px; }
+  section[data-lang] { display: none; }
+  section[data-lang].active { display: block; }
+  h1 { font-family: "Chakra Petch", "Segoe UI Semibold", sans-serif; font-size: 30px; line-height: 1.2; margin: 34px 0 10px; }
+  h2 { font-family: "Chakra Petch", "Segoe UI Semibold", sans-serif; font-size: 24px; line-height: 1.25; margin: 46px 0 12px;
+       padding-top: 14px; border-top: 1px solid var(--line); }
+  h3 { font-size: 18px; margin: 26px 0 6px; }
+  p, li { max-width: 72ch; }
+  .lead { font-size: 19px; color: var(--muted); }
+  nav.toc { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px; margin: 22px 0; }
+  nav.toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 28px; }
+  nav.toc a { color: var(--violet); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 14px 0; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 2px 0 12px 46px; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 9px;
+       background: var(--night); color: var(--cyan); font: 700 16px/30px "Chakra Petch", "Segoe UI", sans-serif; text-align: center;
+       box-shadow: 0 0 0 1px #3B2F86 inset; }
+  .note { border-left: 4px solid var(--violet); background: #EEEAFE; padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .note.warn { border-color: var(--warn); background: #FFF2E3; }
+  figure { margin: 18px 0; }
+  figure img { max-width: 100%; width: 460px; height: auto; border-radius: 10px; box-shadow: 0 2px 14px rgba(22, 18, 58, .16); display: block; }
+  figcaption { color: var(--muted); font-size: 15px; margin-top: 6px; }
+  .states { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin: 16px 0; }
+  .states figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .states img { width: 100%; box-shadow: none; }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  code, kbd { font-family: Consolas, monospace; font-size: 15px; background: #EAE8F6; padding: 2px 6px; border-radius: 6px; }
+  pre { background: var(--night); color: #E9E6FF; padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; background: var(--surface); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #EEEAFE; font-weight: 600; }
+  footer { color: var(--muted); font-size: 14px; margin-top: 50px; }
+  @media (max-width: 640px) { nav.toc ol { columns: 1; } .brand { font-size: 28px; } .langs { margin-left: 0; } }
+  @media print {
+    header { background: none; color: var(--ink); } header::after { display: none; }
+    .langs, nav.toc { display: none; }
+    .brand { color: var(--ink); -webkit-text-fill-color: var(--ink); background: none; }
+    h2 { break-after: avoid; } figure { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    {{LOGO}}
+    <div class="brand">FreshGuest<small id="tagline">Gäste-PC, der nach jedem Gast wieder frisch ist</small></div>
+    <div class="langs" role="group" aria-label="Sprache / Lingua / Language">
+      <button type="button" data-set="de" aria-pressed="false">Deutsch</button>
+      <button type="button" data-set="it" aria-pressed="false">Italiano</button>
+      <button type="button" data-set="en" aria-pressed="false">English</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ========================================================= DEUTSCH -->
+<section data-lang="de" lang="de">
+  <h1>Anleitung</h1>
+  <p class="lead">FreshGuest macht deinen Gäste-PC nach jedem Gast wieder frisch. Gäste melden sich mit <b>„Gast“</b> an – ohne Kennwort.
+  Beim Abmelden oder Neustart löscht Windows alles, was der Gast gemacht hat: Browserverlauf, Anmeldungen (Netflix, Gmail …), Downloads und Dateien.
+  Dein eigenes Konto bleibt unverändert.</p>
+
+  <nav class="toc" aria-label="Inhalt">
+    <b>Inhalt</b>
+    <ol>
+      <li><a href="#de-vorher">Bevor du anfängst</a></li>
+      <li><a href="#de-install">Installieren</a></li>
+      <li><a href="#de-test">Testen</a></li>
+      <li><a href="#de-bedienung">Bedienung</a></li>
+      <li><a href="#de-einstellungen">Einstellungen für Gäste</a></li>
+      <li><a href="#de-alltag">Alltag in der Ferienwohnung</a></li>
+      <li><a href="#de-hilfe">Hilfe und Wartung</a></li>
+      <li><a href="#de-wissen">Gut zu wissen</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="de-vorher">Bevor du anfängst</h2>
+  <ul>
+    <li><b>Nur Windows 11 Pro.</b> Mit Windows 11 <b>Home funktioniert es nicht</b> (dort gibt es den „Shared PC Mode“ nicht). Enterprise und Education sind ungetestet.</li>
+    <li><b>Dein Admin-Konto braucht ein Kennwort.</b> Sonst könnte ein Gast bei der Administrator-Abfrage einfach dein Konto wählen.
+      Prüfen: <i>Einstellungen → Konten → Anmeldeoptionen → Kennwort</i>. Steht dort „Hinzufügen“, bitte ein Kennwort festlegen. Eine PIN allein reicht nicht.</li>
+    <li><b>Programme, die den PC bei jedem Neustart zurücksetzen</b> (z. B. „Freeze“-Programme), vorher ausschalten und deinstallieren – sonst machen sie die Einrichtung wieder rückgängig.</li>
+  </ul>
+
+  <h2 id="de-install">Installieren</h2>
+  <ol class="steps">
+    <li><code>FreshGuest.exe</code> auf einen USB-Stick kopieren. Die eine Datei reicht – es wird nichts anderes gebraucht.</li>
+    <li>Am Gäste-PC mit deinem <b>Admin-Konto</b> anmelden, die Datei doppelklicken und die Windows-Abfrage mit <b>Ja</b> bestätigen.</li>
+    <li>Das Fenster prüft Windows. Alles grün? Dann ein <b>Kennwort für FreshGuest</b> zweimal eingeben.
+      Dieses Kennwort brauchst du später zum Ein- und Ausschalten. Gut aufbewahren!</li>
+    <li><b>Installieren</b> klicken. Das dauert 1–2 Minuten. Danach öffnet sich FreshGuest – jetzt oben auf den großen Knopf <b>⚙ Einstellungen für Gäste</b> klicken und alles einstellen. Erst danach <b>Jetzt neu starten</b> klicken. Erst nach dem Neustart ist der Schutz aktiv.</li>
+  </ol>
+  <figure><img src="{{BILD:1-einrichten}}" alt="Fenster „Einrichtung“"><figcaption>Einrichtung beim ersten Start</figcaption></figure>
+  <div class="note">FreshGuest kopiert sich nach <code>C:\Program Files\FreshGuest</code> und legt die Verknüpfung „FreshGuest“ nur auf <b>deinem</b> Desktop an.
+  Die Protokolle der Installation landen automatisch auf dem USB-Stick (Ordner <code>FreshGuest-Protokolle</code>).</div>
+
+  <h2 id="de-test">Testen (einmal, vor dem ersten Gast)</h2>
+  <ol class="steps">
+    <li>Auf dem Anmeldebildschirm unten links <b>„Gast“</b> wählen.</li>
+    <li>Etwas hinterlassen: eine Webseite öffnen, einen Ordner auf dem Desktop anlegen.</li>
+    <li>Abmelden oder neu starten.</li>
+    <li>Wieder als „Gast“ anmelden: Desktop und Browserverlauf sind leer. ✔</li>
+    <li>Mit deinem Konto anmelden: Windows zeigt dafür <b>Benutzername und Kennwort</b> statt einer Namensliste. Das ist normal und sicherer – Gäste sehen deinen Kontonamen nicht.</li>
+  </ol>
+
+  <h2 id="de-bedienung">Bedienung</h2>
+  <p>Öffne FreshGuest über die Verknüpfung auf deinem Desktop. Die große Farbfläche zeigt den Zustand:</p>
+  <div class="states">
+    <figure><img src="{{BILD:2-schutz-an}}" alt=""><figcaption><span class="dot" style="background:var(--ok)"></span><b>Grün – Schutz ist an.</b> Gast-Daten werden beim Abmelden und Neustart gelöscht.</figcaption></figure>
+    <figure><img src="{{BILD:3-schutz-aus}}" alt=""><figcaption><span class="dot" style="background:var(--off)"></span><b>Grau – Schutz ist aus.</b> Gast-Daten bleiben erhalten.</figcaption></figure>
+    <figure><img src="{{BILD:4-neustart-noetig}}" alt=""><figcaption><span class="dot" style="background:var(--warn)"></span><b>Orange – Neustart nötig.</b> Die Änderung wirkt erst nach dem Neustart.</figcaption></figure>
+  </div>
+  <ul>
+    <li><b>Schutz ein-/ausschalten</b>, <b>Kennwort ändern</b>, <b>Einstellungen</b> und <b>Deinstallieren</b> fragen immer nach dem FreshGuest-Kennwort. Nach 5 falschen Versuchen schließt sich das Programm.</li>
+    <li><b>Details prüfen</b> zeigt, was gerade eingestellt ist.</li>
+    <li>Oben rechts wählst du die Sprache: Deutsch, Italiano oder English.</li>
+  </ul>
+
+  <h2 id="de-einstellungen">Einstellungen für Gäste</h2>
+  <p><b>Wichtig:</b> Was du <i>als Gast</i> einstellst, ist beim nächsten Gast wieder weg – jeder Gast bekommt ein komplett neues Konto.
+  Einstellungen für <i>alle</i> Gäste machst du deshalb hier: <b>⚙ Einstellungen für Gäste …</b> (Kennwort) → Reiter wählen → <b>Übernehmen</b>. Ein Neustart ist nicht nötig.</p>
+
+  <h3>Browser</h3>
+  <figure><img src="{{BILD:6-einstellungen-browser}}" alt="Reiter Browser"></figure>
+  <ul>
+    <li><b>Kein Willkommensassistent:</b> Edge, Chrome und Firefox starten sofort. Bei Chrome wird dafür die Chrome-Anmeldung (Sync) abgeschaltet – Gmail &amp; Co. funktionieren normal.</li>
+    <li><b>Kennwörter nicht speichern:</b> keine Frage „Kennwort speichern?“.</li>
+    <li><b>Nicht als Standardbrowser fragen.</b></li>
+    <li><b>Browser-Symbole auf den Desktop:</b> „Internet (Edge)“, „Internet (Chrome)“ und „Internet (Firefox)“ – für jeden installierten Browser. Ein Browser, der nur für dein Konto installiert ist, fehlt bei Gästen; das Protokoll weist darauf hin.</li>
+    <li><b>Feste Startseite:</b> eigenen Link eintippen, z. B. die Seite deiner Ferienwohnung. Firefox öffnet sie immer. Edge und Chrome erlauben das auf privaten PCs nicht – sie öffnen die Startseite über ihr Symbol „Internet (…)“ auf dem Desktop.</li>
+    <li>Diese Browser-Einstellungen gelten <b>nur für Gäste</b>, ab dem nächsten Gast – dein eigenes Konto bleibt unverändert. Alle Häkchen weg + Übernehmen entfernt sie wieder.</li>
+  </ul>
+
+  <h3>Hintergrund</h3>
+  <figure><img src="{{BILD:7-einstellungen-hintergrund}}" alt="Reiter Hintergrund"></figure>
+  <p>Eigenes Bild (JPG, PNG oder BMP) als Desktop-Hintergrund für jeden neuen Gast – zum Beispiel ein Foto der Wohnung mit WLAN-Name und Kennwort.
+  Gilt ab der nächsten Gast-Anmeldung. Dein eigenes Konto behält seinen Hintergrund.</p>
+
+  <h3>Profilbild</h3>
+  <figure><img src="{{BILD:15-einstellungen-profilbild}}" alt="Bereich Profilbild"></figure>
+  <p>Eigenes Profilbild für jeden Gast – im Startmenü, sobald der Gast angemeldet ist. Entweder ein eigenes Foto (wird quadratisch zugeschnitten) oder das Pinguin-Logo.
+  Dein eigenes Konto bleibt unverändert. Das Bild erscheint auch auf der Kachel „Guest“ am Anmeldebildschirm – statt der Figur mit dem Fragezeichen.</p>
+
+  <h3>Autostart</h3>
+  <figure><img src="{{BILD:8-einstellungen-autostart}}" alt="Reiter Autostart"></figure>
+  <p>Öffnet beim Anmelden eines Gastes automatisch eine Internetseite (z. B. deine Willkommensseite mit Hausinfos) oder ein Programm.
+  Bei deinem eigenen Konto startet nichts. <b>Startseite übernehmen</b> setzt die Startseite aus dem Reiter „Browser“ ein.</p>
+  <h3>Desktop</h3>
+  <figure><img src="{{BILD:9-einstellungen-desktop}}" alt="Bereich Desktop"></figure>
+  <p>Alles in dieser Liste liegt bei jedem neuen Gast auf dem Desktop: z. B. ein PDF mit Hausinfos, eine Verknüpfung zu VLC oder eine Internetseite (Knopf <b>Internetseite …</b>).
+  Dateien einfach aus dem Explorer in die Liste ziehen. Programme (.exe) kommen als Verknüpfung auf den Desktop. Dein eigener Desktop bleibt unverändert.</p>
+
+  <h3>Willkommen</h3>
+  <figure><img src="{{BILD:10-einstellungen-willkommen}}" alt="Bereich Willkommen"></figure>
+  <p>Jeder Gast sieht nach dem Anmelden ein Fenster – mit WLAN-Name und -Kennwort, Check-out-Zeit, deinem Kontakt und dem Hinweis,
+  dass alles gelöscht wird. Die Texte stehen immer in <b>Deutsch, Italienisch und Englisch gleichzeitig</b> da, weil man nicht weiß, wer vor dem PC sitzt. Leere Felder werden nicht angezeigt. <b>Vorschau …</b> zeigt das Fenster, wie der Gast es sieht.</p>
+  <ul>
+    <li><b>Texte je Sprache:</b> Unter „Texte in Sprache“ die Sprache wählen und Check-out, Kontakt, Zusatzfeld und eigenen Text in dieser Sprache eintragen. Bleibt ein Feld in einer Sprache leer, gilt der deutsche Eintrag. WLAN-Name und -Kennwort gelten für alle.</li>
+    <li><b>Zusatzfeld:</b> ein frei benennbares Feld – links die Beschriftung (z. B. „Parkplatz“ oder „Müll“), rechts der Inhalt.</li>
+    <li><b>4. Sprache:</b> wahlweise Französisch, Spanisch, Niederländisch, Polnisch oder Tschechisch. Sie gilt für alle Fenster für Gäste (Willkommen, Hinweis, „Noch da?“) – die festen Texte sind schon übersetzt.</li>
+  </ul>
+  <figure><img src="{{BILD:13-gast-willkommen}}" alt="Willkommensfenster beim Gast"><figcaption>So sieht es der Gast – alle Sprachen gleichzeitig</figcaption></figure>
+
+  <h3>Automatik</h3>
+  <figure><img src="{{BILD:11-einstellungen-abmelden}}" alt="Bereich Automatik"></figure>
+  <ul>
+    <li><b>PC ausschalten, wenn ein Gast ihn nicht benutzt:</b> nach 15 Minuten bis 4 Stunden ohne Maus und Tastatur. Vorher erscheint 60 Sekunden lang „Noch da?“ (in drei Sprachen).
+      Klickt niemand, fährt der PC herunter – beim nächsten Einschalten ist er wieder frisch. Läuft gerade ein Video oder Film, passiert nichts. Gilt nur für Gäste.</li>
+    <li><b>PC jeden Tag neu starten</b> zu einer festen Uhrzeit, z. B. 4:00 Uhr. Wer dann angemeldet ist, bekommt 5 Minuten vorher eine Meldung.</li>
+    <li><b>Hinweis für Gäste beim Anmelden zeigen:</b> ein kleines Fenster mit festem Text in Deutsch, Italienisch und Englisch: Der PC wird nach jedem Gast zurückgesetzt, alles wird gelöscht.
+      Sind das automatische Ausschalten oder der tägliche Neustart eingeschaltet, steht das auch dabei. Ist das Willkommensfenster an, steht der Hinweis dort mit drin.</li>
+  </ul>
+  <figure><img src="{{BILD:14-gast-noch-da}}" alt="Warnung Noch da"><figcaption>Warnung vor dem automatischen Ausschalten</figcaption></figure>
+  <figure><img src="{{BILD:17-gast-hinweis}}" alt="Hinweis für Gäste"><figcaption>Hinweis für Gäste beim Anmelden</figcaption></figure>
+
+  <h3>Sperren &amp; Drucker</h3>
+  <figure><img src="{{BILD:12-einstellungen-sperren}}" alt="Bereich Sperren und Drucker"></figure>
+  <ul>
+    <li><b>Systemsteuerung und Windows-Einstellungen sperren:</b> Gäste können nichts an Windows verstellen. WLAN, Lautstärke und Drucken gehen weiterhin.</li>
+    <li><b>Eingabeaufforderung und Registry-Editor sperren.</b></li>
+    <li><b>Programme installieren sperren:</b> Gäste können keine Installationspakete (.msi) und keine Programme „nur für diesen Benutzer“ installieren (z. B. Chrome, Zoom). Programme mit Administrator-Rechten können Gäste ohnehin nie installieren.</li>
+    <li><b>Programme aus Downloads und vom Desktop sperren:</b> heruntergeladene oder auf den Desktop gelegte Programme (.exe) starten nicht. Programme aus <code>C:\Programme</code> (Browser, Office, VLC …) laufen immer normal. Nebenwirkung: Web-Starter wie Zoom oder Teams zum Herunterladen gehen für Gäste nicht – im Browser beitreten funktioniert.</li>
+    <li><b>Standarddrucker für Gäste:</b> Gäste drucken z. B. Bordkarten direkt auf diesem Drucker. Den Drucker vorher mit deinem Konto installieren – am besten direkt über seine IP-Adresse, nicht als Netzwerk-Freigabe.</li>
+    <li>Gilt nur für Gäste, dein Konto bleibt frei.</li>
+  </ul>
+
+  <h3>Anmeldung</h3>
+  <figure><img src="{{BILD:16-einstellungen-anmeldung}}" alt="Bereich Anmeldung"></figure>
+  <ul>
+    <li><b>„Guest“ automatisch auswählen</b> (Standard): Windows wählt auf dem Anmeldebildschirm sonst immer „Anderer Benutzer“ vor. FreshGuest wählt nach dem Start und nach jeder Abmeldung von selbst die Kachel „Guest“ – Gäste klicken nur noch auf „Anmelden“. Du meldest dich weiter unten links über „Anderer Benutzer“ an.</li>
+    <li><b>Nur „Guest“ anzeigen:</b> „Anderer Benutzer“ verschwindet ganz. <b>Achtung:</b> Dein Konto erreichst du dann nur noch so: <b>direkt am Anmeldebildschirm</b> (dort, wo „Guest“ und „Anmelden“ stehen – nicht vorher als Gast anmelden) <b>Strg + Alt + F</b> drücken. Es kommt keine Meldung: Der Bildschirm flackert kurz, dann erscheint unten links „Anderer Benutzer“ für 10 Minuten. Dort meldest du dich wie gewohnt mit Benutzername und Windows-Kennwort an. Ist gerade ein Gast angemeldet, zuerst den Gast abmelden. Dein Konto wird dabei nie abgeschaltet – nur seine Kachel wird versteckt. Solange du angemeldet bist, bleibt alles normal (auch Sperren mit Win + L).</li>
+    <li><b>Schutz vor dem Aussperren:</b> Nach dem Einschalten von „Nur Guest“ musst du die Tastenkombination einmal benutzen: neu starten, innerhalb von 3 Minuten Strg + Alt + F drücken und dich anmelden. Erst danach bleibt „Anderer Benutzer“ dauerhaft versteckt – sonst schaltet sich die Option von selbst wieder aus.</li>
+  </ul>
+  <div class="note"><b>Notfall</b> (falls die Tastenkombination einmal nicht geht): Am Anmeldebildschirm unten rechts auf das Ein/Aus-Symbol klicken, <b>Umschalt</b> gedrückt halten und <b>Neu starten</b> wählen. Dann <i>Problembehandlung → Erweiterte Optionen → Eingabeaufforderung</i> und diese vier Zeilen eingeben (liegt Windows dort nicht auf C:, den Buchstaben anpassen), danach neu starten:
+  <pre>reg load HKLM\FG C:\Windows\System32\config\SOFTWARE
+reg delete "HKLM\FG\FreshGuest" /v NurGuest /f
+reg delete "HKLM\FG\Microsoft\Windows\CurrentVersion\Policies\System" /v ExcludedCredentialProviders /f
+reg unload HKLM\FG</pre></div>
+
+  <h2 id="de-alltag">Alltag in der Ferienwohnung</h2>
+  <ul>
+    <li><b>Anmeldebildschirm:</b> Nach dem Start wählt FreshGuest von selbst <b>„Guest“</b> aus – Gäste klicken nur auf „Anmelden“. Du selbst meldest dich unten links über <b>„Anderer Benutzer“</b> an (Benutzername deines Kontos und Windows-Kennwort eintippen). Hast du „Nur Guest anzeigen“ eingeschaltet, drückst du vorher direkt am Anmeldebildschirm <b>Strg + Alt + F</b>.</li>
+    <li><b>Nach jeder Abreise den PC einmal neu starten</b> – oder unter <b>Automatik</b> den PC automatisch ausschalten bzw. täglich neu starten lassen. Bleibt ein Gast angemeldet, sieht der nächste sonst dessen Sitzung.</li>
+    <li><b>Programme für Gäste</b> (Browser, VLC, Office …) installierst du einfach mit deinem Konto – auch bei eingeschaltetem Schutz. Sie stehen dann allen Gästen zur Verfügung.</li>
+    <li><b>Windows-Updates</b> laufen ganz normal weiter.</li>
+  </ul>
+
+  <h2 id="de-hilfe">Hilfe und Wartung</h2>
+  <h3>Protokolle auf den USB-Stick</h3>
+  <p>Im Programm auf <b>„Protokolle auf USB-Stick speichern“</b> klicken. Ist genau ein Stick eingesteckt, wird direkt dorthin gespeichert.
+  Der Ordner <code>FreshGuest-Protokolle</code> enthält keine Kennwörter und keine persönlichen Daten – du kannst ihn bei Problemen weitergeben.</p>
+  <h3>Kennwort vergessen</h3>
+  <p>Mit deinem Windows-Konto die <i>Eingabeaufforderung als Administrator</i> öffnen und eingeben:</p>
+  <pre>"C:\Program Files\FreshGuest\FreshGuest.exe" --kennwort-zuruecksetzen</pre>
+  <h3>Neue Version</h3>
+  <p>Die neue <code>FreshGuest.exe</code> vom USB-Stick starten. Sie ersetzt die installierte Version; Kennwort und Einstellungen bleiben.</p>
+  <h3>Deinstallieren</h3>
+  <p>Im Programm <b>Deinstallieren</b> (Kennwort), danach neu starten. Schutz und alle Einstellungen für Gäste werden entfernt.</p>
+
+  <h2 id="de-wissen">Gut zu wissen</h2>
+  <ul>
+    <li>FreshGuest setzt <b>nur die Gast-Daten</b> zurück, nicht die ganze Festplatte. Für einen Gäste-PC reicht das, weil Gäste ohne Administrator-Rechte Windows nicht verändern können.</li>
+    <li>Gäste können FreshGuest nicht öffnen: Windows verlangt dafür dein Admin-Kennwort.</li>
+    <li>Technisch nutzt FreshGuest den in Windows eingebauten <b>„Shared PC Mode“</b> von Microsoft.</li>
+  </ul>
+</section>
+
+<!-- ========================================================= ITALIANO -->
+<section data-lang="it" lang="it">
+  <h1>Guida</h1>
+  <p class="lead">FreshGuest rende di nuovo pulito il PC degli ospiti dopo ogni ospite. Gli ospiti accedono con <b>«Ospite»</b> – senza password.
+  Alla disconnessione o al riavvio Windows cancella tutto ciò che l'ospite ha fatto: cronologia del browser, accessi (Netflix, Gmail …), download e file.
+  Il tuo account resta invariato.</p>
+
+  <nav class="toc" aria-label="Indice">
+    <b>Indice</b>
+    <ol>
+      <li><a href="#it-prima">Prima di iniziare</a></li>
+      <li><a href="#it-install">Installazione</a></li>
+      <li><a href="#it-test">Prova</a></li>
+      <li><a href="#it-uso">Utilizzo</a></li>
+      <li><a href="#it-impostazioni">Impostazioni per gli ospiti</a></li>
+      <li><a href="#it-quotidiano">Uso quotidiano nell'appartamento</a></li>
+      <li><a href="#it-aiuto">Aiuto e manutenzione</a></li>
+      <li><a href="#it-sapere">Buono a sapersi</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="it-prima">Prima di iniziare</h2>
+  <ul>
+    <li><b>Solo Windows 11 Pro.</b> Con Windows 11 <b>Home non funziona</b> (manca la «modalità PC condiviso»). Enterprise ed Education non sono testati.</li>
+    <li><b>Il tuo account amministratore deve avere una password.</b> Altrimenti un ospite potrebbe scegliere il tuo account alla richiesta di amministratore.
+      Verifica: <i>Impostazioni → Account → Opzioni di accesso → Password</i>. Se c'è «Aggiungi», imposta una password. Il solo PIN non basta.</li>
+    <li><b>Programmi che ripristinano il PC a ogni riavvio</b> (ad es. programmi «Freeze») vanno disattivati e disinstallati prima – altrimenti annullano la configurazione.</li>
+  </ul>
+
+  <h2 id="it-install">Installazione</h2>
+  <ol class="steps">
+    <li>Copiare <code>FreshGuest.exe</code> su una chiavetta USB. Basta questo file – non serve nient'altro.</li>
+    <li>Sul PC degli ospiti accedere con il tuo <b>account amministratore</b>, fare doppio clic sul file e confermare la richiesta di Windows con <b>Sì</b>.</li>
+    <li>La finestra verifica Windows. Tutto verde? Allora inserire due volte una <b>password per FreshGuest</b>.
+      Ti servirà per attivare e disattivare la protezione. Conservala bene!</li>
+    <li>Cliccare <b>Installa</b>. Ci vogliono 1–2 minuti. Poi si apre FreshGuest – ora cliccare in alto sul grande pulsante <b>⚙ Impostazioni per gli ospiti</b> e impostare tutto. Solo dopo cliccare <b>Riavvia ora</b>. La protezione è attiva solo dopo il riavvio.</li>
+  </ol>
+  <figure><img src="{{BILD:1-einrichten-it}}" alt="Finestra «Installazione»"><figcaption>Installazione al primo avvio</figcaption></figure>
+  <div class="note">FreshGuest si copia in <code>C:\Program Files\FreshGuest</code> e crea il collegamento «FreshGuest» solo sul <b>tuo</b> desktop.
+  I log dell'installazione vengono salvati automaticamente sulla chiavetta USB (cartella <code>FreshGuest-Protokolle</code>).</div>
+
+  <h2 id="it-test">Prova (una volta, prima del primo ospite)</h2>
+  <ol class="steps">
+    <li>Nella schermata di accesso, in basso a sinistra, scegliere <b>«Ospite»</b>.</li>
+    <li>Lasciare qualcosa: aprire una pagina web, creare una cartella sul desktop.</li>
+    <li>Disconnettersi o riavviare.</li>
+    <li>Accedere di nuovo come «Ospite»: desktop e cronologia sono vuoti. ✔</li>
+    <li>Accedere con il tuo account: Windows mostra <b>nome utente e password</b> invece di un elenco di nomi. È normale e più sicuro – gli ospiti non vedono il nome del tuo account.</li>
+  </ol>
+
+  <h2 id="it-uso">Utilizzo</h2>
+  <p>Apri FreshGuest dal collegamento sul tuo desktop. Il grande riquadro colorato mostra lo stato:</p>
+  <div class="states">
+    <figure><img src="{{BILD:2-schutz-an-it}}" alt=""><figcaption><span class="dot" style="background:var(--ok)"></span><b>Verde – protezione attiva.</b> I dati dell'ospite vengono cancellati alla disconnessione e al riavvio.</figcaption></figure>
+    <figure><img src="{{BILD:3-schutz-aus-it}}" alt=""><figcaption><span class="dot" style="background:var(--off)"></span><b>Grigio – protezione disattivata.</b> I dati degli ospiti restano.</figcaption></figure>
+    <figure><img src="{{BILD:4-neustart-noetig-it}}" alt=""><figcaption><span class="dot" style="background:var(--warn)"></span><b>Arancione – riavvio necessario.</b> La modifica vale dopo il riavvio.</figcaption></figure>
+  </div>
+  <ul>
+    <li><b>Attiva/disattiva protezione</b>, <b>Cambia password</b>, <b>Impostazioni</b> e <b>Disinstalla</b> chiedono sempre la password di FreshGuest. Dopo 5 tentativi errati il programma si chiude.</li>
+    <li><b>Verifica dettagli</b> mostra cosa è impostato.</li>
+    <li>In alto a destra scegli la lingua: Deutsch, Italiano o English.</li>
+  </ul>
+
+  <h2 id="it-impostazioni">Impostazioni per gli ospiti</h2>
+  <p><b>Importante:</b> ciò che imposti <i>come ospite</i> sparisce con l'ospite successivo – ogni ospite riceve un account completamente nuovo.
+  Le impostazioni per <i>tutti</i> gli ospiti si fanno quindi qui: <b>⚙ Impostazioni per gli ospiti …</b> (password) → scegli la scheda → <b>Applica</b>. Non serve riavviare.</p>
+
+  <h3>Browser</h3>
+  <figure><img src="{{BILD:6-einstellungen-browser-it}}" alt="Scheda Browser"></figure>
+  <ul>
+    <li><b>Nessuna procedura di benvenuto:</b> Edge, Chrome e Firefox partono subito. In Chrome viene disattivato l'accesso a Chrome (sincronizzazione) – Gmail e simili funzionano normalmente.</li>
+    <li><b>Non salvare le password:</b> nessuna domanda «Salvare la password?».</li>
+    <li><b>Non chiedere di diventare il browser predefinito.</b></li>
+    <li><b>Icone dei browser sul desktop:</b> «Internet (Edge)», «Internet (Chrome)» e «Internet (Firefox)» – per ogni browser installato. Un browser installato solo per il tuo account manca agli ospiti; il registro lo segnala.</li>
+    <li><b>Pagina iniziale fissa:</b> inserisci il tuo link, ad es. la pagina del tuo appartamento. Firefox la apre sempre. Edge e Chrome non lo permettono sui PC privati – aprono la pagina iniziale tramite la loro icona «Internet (…)» sul desktop.</li>
+    <li>Queste impostazioni del browser valgono <b>solo per gli ospiti</b>, dal prossimo ospite – il tuo account resta invariato. Togli tutte le spunte + Applica per rimuoverle.</li>
+  </ul>
+
+  <h3>Sfondo</h3>
+  <figure><img src="{{BILD:7-einstellungen-hintergrund-it}}" alt="Scheda Sfondo"></figure>
+  <p>Un'immagine propria (JPG, PNG o BMP) come sfondo del desktop per ogni nuovo ospite – ad esempio una foto dell'appartamento con nome e password del Wi-Fi.
+  Vale dal prossimo accesso di un ospite. Il tuo account mantiene il suo sfondo.</p>
+
+  <h3>Immagine del profilo</h3>
+  <figure><img src="{{BILD:15-einstellungen-profilbild-it}}" alt="Sezione Immagine profilo"></figure>
+  <p>Un'immagine del profilo per ogni ospite – nel menu Start, appena l'ospite ha effettuato l'accesso. Una foto propria (ritagliata in formato quadrato) oppure il logo del pinguino.
+  Il tuo account resta invariato. L'immagine compare anche sul riquadro «Guest» nella schermata di accesso – al posto della figura con il punto interrogativo.</p>
+
+  <h3>Avvio automatico</h3>
+  <figure><img src="{{BILD:8-einstellungen-autostart-it}}" alt="Scheda Avvio automatico"></figure>
+  <p>All'accesso di un ospite apre automaticamente una pagina internet (ad es. la tua pagina di benvenuto con le informazioni sulla casa) o un programma.
+  Con il tuo account non parte nulla. <b>Usa pagina iniziale</b> inserisce la pagina iniziale della scheda «Browser».</p>
+  <h3>Desktop</h3>
+  <figure><img src="{{BILD:9-einstellungen-desktop-it}}" alt="Sezione Desktop"></figure>
+  <p>Tutto ciò che è in questa lista appare sul desktop di ogni nuovo ospite: ad es. un PDF con le info sulla casa, un collegamento a VLC o una pagina internet (pulsante <b>Pagina internet …</b>).
+  Basta trascinare i file da Esplora file nella lista. I programmi (.exe) vengono messi come collegamento. Il tuo desktop resta invariato.</p>
+
+  <h3>Benvenuto</h3>
+  <figure><img src="{{BILD:10-einstellungen-willkommen-it}}" alt="Sezione Benvenuto"></figure>
+  <p>Dopo l'accesso ogni ospite vede una finestra – con nome e password del Wi-Fi, orario di check-out, il tuo contatto e l'avviso
+  che tutto viene cancellato. I testi sono sempre in <b>tedesco, italiano e inglese insieme</b>, perché non si sa chi è seduto al PC. I campi vuoti non vengono mostrati. <b>Anteprima …</b> mostra la finestra come la vede l'ospite.</p>
+  <ul>
+    <li><b>Testi per lingua:</b> in «Testi in lingua» scegli la lingua e inserisci check-out, contatto, campo extra e testo proprio in quella lingua. Se un campo resta vuoto in una lingua, vale quello tedesco. Nome e password del Wi-Fi valgono per tutti.</li>
+    <li><b>Campo extra:</b> un campo con etichetta libera – a sinistra l'etichetta (ad es. «Parcheggio» o «Rifiuti»), a destra il contenuto.</li>
+    <li><b>4ª lingua:</b> a scelta francese, spagnolo, olandese, polacco o ceco. Vale per tutte le finestre per gli ospiti (benvenuto, avviso, «Ci sei ancora?») – i testi fissi sono già tradotti.</li>
+  </ul>
+  <figure><img src="{{BILD:13-gast-willkommen-it}}" alt="Finestra di benvenuto"><figcaption>Così la vede l'ospite – tutte le lingue insieme</figcaption></figure>
+
+  <h3>Automatismi</h3>
+  <figure><img src="{{BILD:11-einstellungen-abmelden-it}}" alt="Sezione Automatismi"></figure>
+  <ul>
+    <li><b>Spegni il PC se un ospite non lo usa:</b> dopo 15 minuti fino a 4 ore senza mouse e tastiera. Prima appare per 60 secondi «Ci sei ancora?» (in tre lingue).
+      Se nessuno clicca, il PC si spegne – alla prossima accensione è di nuovo pulito. Se è in corso un video o un film, non succede nulla. Vale solo per gli ospiti.</li>
+    <li><b>Riavvia il PC ogni giorno</b> a un orario fisso, ad es. alle 4:00. Chi è connesso riceve un avviso 5 minuti prima.</li>
+    <li><b>Mostra un avviso agli ospiti all'accesso:</b> una piccola finestra con testo fisso in tedesco, italiano e inglese: il PC viene ripristinato dopo ogni ospite, tutto viene cancellato.
+      Se sono attivi lo spegnimento automatico o il riavvio giornaliero, viene indicato anche questo. Se la finestra di benvenuto è attiva, l'avviso è già lì.</li>
+  </ul>
+  <figure><img src="{{BILD:14-gast-noch-da-it}}" alt="Avviso Ci sei ancora"><figcaption>Avviso prima dello spegnimento automatico</figcaption></figure>
+  <figure><img src="{{BILD:17-gast-hinweis-it}}" alt="Avviso per gli ospiti"><figcaption>Avviso per gli ospiti all'accesso</figcaption></figure>
+
+  <h3>Blocchi e stampante</h3>
+  <figure><img src="{{BILD:12-einstellungen-sperren-it}}" alt="Sezione Blocchi e stampante"></figure>
+  <ul>
+    <li><b>Blocca Pannello di controllo e Impostazioni di Windows:</b> gli ospiti non possono modificare Windows. Wi-Fi, volume e stampa funzionano comunque.</li>
+    <li><b>Blocca Prompt dei comandi ed Editor del Registro.</b></li>
+    <li><b>Blocca l'installazione di programmi:</b> gli ospiti non possono installare pacchetti (.msi) né programmi «solo per questo utente» (ad es. Chrome, Zoom). I programmi che richiedono diritti di amministratore non sono comunque mai installabili dagli ospiti.</li>
+    <li><b>Blocca i programmi da Download e dal desktop:</b> i programmi (.exe) scaricati o messi sul desktop non si avviano. I programmi in <code>C:\Programmi</code> (browser, Office, VLC …) funzionano sempre. Effetto collaterale: gli avviatori web come Zoom o Teams da scaricare non funzionano per gli ospiti – partecipare dal browser funziona.</li>
+    <li><b>Stampante predefinita per gli ospiti:</b> gli ospiti stampano ad es. le carte d'imbarco direttamente su questa stampante. Installare prima la stampante con il tuo account – meglio direttamente tramite indirizzo IP, non come condivisione di rete.</li>
+    <li>Vale solo per gli ospiti, il tuo account resta libero.</li>
+  </ul>
+
+
+  <h3>Accesso</h3>
+  <figure><img src="{{BILD:16-einstellungen-anmeldung-it}}" alt="Sezione Accesso"></figure>
+  <ul>
+    <li><b>Seleziona automaticamente «Guest»</b> (predefinito): nella schermata di accesso Windows seleziona altrimenti sempre «Altro utente». FreshGuest seleziona da solo il riquadro «Guest» dopo l'avvio e dopo ogni disconnessione – gli ospiti cliccano solo su «Accedi». Tu accedi come sempre in basso a sinistra con «Altro utente».</li>
+    <li><b>Mostra solo «Guest»:</b> «Altro utente» scompare del tutto. <b>Attenzione:</b> il tuo account è raggiungibile solo così: <b>direttamente nella schermata di accesso</b> (dove si vedono «Guest» e «Accedi» – senza accedere prima come ospite) premi <b>Ctrl + Alt + F</b>. Non compare alcun messaggio: lo schermo lampeggia un attimo, poi in basso a sinistra compare «Altro utente» per 10 minuti. Lì accedi come sempre con nome utente e password di Windows. Se un ospite è connesso, prima disconnettilo. Il tuo account non viene mai disattivato – viene nascosto solo il suo riquadro. Finché sei connesso tutto resta normale (anche il blocco con Win + L).</li>
+    <li><b>Protezione contro il blocco:</b> dopo aver attivato «Mostra solo Guest» devi usare una volta la combinazione di tasti: riavvia, entro 3 minuti premi Ctrl + Alt + F e accedi. Solo dopo «Altro utente» resta nascosto in modo permanente – altrimenti l'opzione si disattiva da sola.</li>
+  </ul>
+  <div class="note"><b>Emergenza</b> (se la combinazione di tasti non dovesse funzionare): nella schermata di accesso clicca in basso a destra sul simbolo di accensione, tieni premuto <b>Maiusc</b> e scegli <b>Riavvia</b>. Poi <i>Risoluzione dei problemi → Opzioni avanzate → Prompt dei comandi</i> e digita queste quattro righe (se lì Windows non è su C:, cambia la lettera), poi riavvia:
+  <pre>reg load HKLM\FG C:\Windows\System32\config\SOFTWARE
+reg delete "HKLM\FG\FreshGuest" /v NurGuest /f
+reg delete "HKLM\FG\Microsoft\Windows\CurrentVersion\Policies\System" /v ExcludedCredentialProviders /f
+reg unload HKLM\FG</pre></div>
+
+  <h2 id="it-quotidiano">Uso quotidiano nell'appartamento</h2>
+  <ul>
+    <li><b>Schermata di accesso:</b> dopo l'avvio FreshGuest seleziona da solo <b>«Guest»</b> – gli ospiti cliccano solo su «Accedi». Tu accedi in basso a sinistra con <b>«Altro utente»</b> (digitare il nome utente del tuo account e la password di Windows). Se hai attivato «Mostra solo Guest», premi prima <b>Ctrl + Alt + F</b> direttamente nella schermata di accesso.</li>
+    <li><b>Dopo ogni partenza riavviare il PC una volta</b> – oppure attivare in <b>Automatismi</b> lo spegnimento automatico o il riavvio giornaliero. Se un ospite resta connesso, il successivo vedrebbe la sua sessione.</li>
+    <li><b>Programmi per gli ospiti</b> (browser, VLC, Office …) li installi semplicemente con il tuo account – anche con la protezione attiva. Saranno disponibili per tutti gli ospiti.</li>
+    <li><b>Gli aggiornamenti di Windows</b> continuano normalmente.</li>
+  </ul>
+
+  <h2 id="it-aiuto">Aiuto e manutenzione</h2>
+  <h3>Log sulla chiavetta USB</h3>
+  <p>Nel programma cliccare <b>«Salva i log su chiavetta USB»</b>. Se è inserita una sola chiavetta, si salva direttamente lì.
+  La cartella <code>FreshGuest-Protokolle</code> non contiene password né dati personali – in caso di problemi puoi inoltrarla.</p>
+  <h3>Password dimenticata</h3>
+  <p>Con il tuo account Windows aprire il <i>Prompt dei comandi come amministratore</i> e digitare:</p>
+  <pre>"C:\Program Files\FreshGuest\FreshGuest.exe" --kennwort-zuruecksetzen</pre>
+  <h3>Nuova versione</h3>
+  <p>Avviare la nuova <code>FreshGuest.exe</code> dalla chiavetta USB. Sostituisce la versione installata; password e impostazioni restano.</p>
+  <h3>Disinstallare</h3>
+  <p>Nel programma <b>Disinstalla</b> (password), poi riavviare. Vengono rimosse la protezione e tutte le impostazioni per gli ospiti.</p>
+
+  <h2 id="it-sapere">Buono a sapersi</h2>
+  <ul>
+    <li>FreshGuest azzera <b>solo i dati degli ospiti</b>, non l'intero disco. Per un PC ospiti basta, perché gli ospiti senza diritti di amministratore non possono modificare Windows.</li>
+    <li>Gli ospiti non possono aprire FreshGuest: Windows chiede la tua password di amministratore.</li>
+    <li>Tecnicamente FreshGuest usa la <b>«modalità PC condiviso»</b> (Shared PC Mode) integrata in Windows da Microsoft.</li>
+  </ul>
+</section>
+
+<!-- ========================================================= ENGLISH -->
+<section data-lang="en" lang="en">
+  <h1>Guide</h1>
+  <p class="lead">FreshGuest makes your guest PC fresh again after every guest. Guests sign in with <b>“Guest”</b> – no password.
+  At sign-out or restart Windows deletes everything the guest did: browser history, logins (Netflix, Gmail …), downloads and files.
+  Your own account stays unchanged.</p>
+
+  <nav class="toc" aria-label="Contents">
+    <b>Contents</b>
+    <ol>
+      <li><a href="#en-before">Before you start</a></li>
+      <li><a href="#en-install">Install</a></li>
+      <li><a href="#en-test">Test</a></li>
+      <li><a href="#en-use">Using FreshGuest</a></li>
+      <li><a href="#en-settings">Guest settings</a></li>
+      <li><a href="#en-daily">Day to day at the holiday flat</a></li>
+      <li><a href="#en-help">Help and maintenance</a></li>
+      <li><a href="#en-know">Good to know</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="en-before">Before you start</h2>
+  <ul>
+    <li><b>Windows 11 Pro only.</b> Windows 11 <b>Home does not work</b> (it has no Shared PC mode). Enterprise and Education are untested.</li>
+    <li><b>Your admin account needs a password.</b> Otherwise a guest could simply pick your account at the administrator prompt.
+      Check: <i>Settings → Accounts → Sign-in options → Password</i>. If it says “Add”, set a password. A PIN alone is not enough.</li>
+    <li><b>Programs that reset the PC at every restart</b> (e.g. “freeze” programs) must be turned off and uninstalled first – otherwise they undo the setup.</li>
+  </ul>
+
+  <h2 id="en-install">Install</h2>
+  <ol class="steps">
+    <li>Copy <code>FreshGuest.exe</code> to a USB stick. That one file is all you need.</li>
+    <li>On the guest PC, sign in with your <b>admin account</b>, double-click the file and confirm the Windows prompt with <b>Yes</b>.</li>
+    <li>The window checks Windows. All green? Then enter a <b>FreshGuest password</b> twice.
+      You will need it to turn protection on and off. Keep it safe!</li>
+    <li>Click <b>Install</b>. It takes 1–2 minutes. FreshGuest then opens – now click the big <b>⚙ Guest settings</b> button at the top and set everything up. Only then click <b>Restart now</b>. Protection is active only after the restart.</li>
+  </ol>
+  <figure><img src="{{BILD:1-einrichten-en}}" alt="Setup window"><figcaption>Setup on first start</figcaption></figure>
+  <div class="note">FreshGuest copies itself to <code>C:\Program Files\FreshGuest</code> and places the “FreshGuest” shortcut on <b>your</b> desktop only.
+  The setup logs are saved to the USB stick automatically (folder <code>FreshGuest-Protokolle</code>).</div>
+
+  <h2 id="en-test">Test (once, before the first guest)</h2>
+  <ol class="steps">
+    <li>On the sign-in screen, pick <b>“Guest”</b> at the bottom left.</li>
+    <li>Leave something behind: open a web page, create a folder on the desktop.</li>
+    <li>Sign out or restart.</li>
+    <li>Sign in as “Guest” again: desktop and browser history are empty. ✔</li>
+    <li>Sign in with your account: Windows shows <b>user name and password</b> fields instead of a list of names. That is normal and safer – guests don't see your account name.</li>
+  </ol>
+
+  <h2 id="en-use">Using FreshGuest</h2>
+  <p>Open FreshGuest from the shortcut on your desktop. The large coloured panel shows the state:</p>
+  <div class="states">
+    <figure><img src="{{BILD:2-schutz-an-en}}" alt=""><figcaption><span class="dot" style="background:var(--ok)"></span><b>Green – protection is on.</b> Guest data is deleted at sign-out and restart.</figcaption></figure>
+    <figure><img src="{{BILD:3-schutz-aus-en}}" alt=""><figcaption><span class="dot" style="background:var(--off)"></span><b>Grey – protection is off.</b> Guest data is kept.</figcaption></figure>
+    <figure><img src="{{BILD:4-neustart-noetig-en}}" alt=""><figcaption><span class="dot" style="background:var(--warn)"></span><b>Orange – restart needed.</b> The change takes effect after a restart.</figcaption></figure>
+  </div>
+  <ul>
+    <li><b>Turn protection on/off</b>, <b>Change password</b>, <b>Settings</b> and <b>Uninstall</b> always ask for the FreshGuest password. After 5 wrong attempts the program closes.</li>
+    <li><b>Check details</b> shows what is currently set.</li>
+    <li>Pick the language at the top right: Deutsch, Italiano or English.</li>
+  </ul>
+
+  <h2 id="en-settings">Guest settings</h2>
+  <p><b>Important:</b> whatever you set up <i>as a guest</i> is gone for the next guest – every guest gets a brand-new account.
+  Settings for <i>all</i> guests are therefore made here: <b>⚙ Guest settings …</b> (password) → pick a tab → <b>Apply</b>. No restart needed.</p>
+
+  <h3>Browser</h3>
+  <figure><img src="{{BILD:6-einstellungen-browser-en}}" alt="Browser tab"></figure>
+  <ul>
+    <li><b>No welcome wizard:</b> Edge, Chrome and Firefox start straight away. For Chrome this turns off Chrome sign-in (sync) – Gmail and the like work normally.</li>
+    <li><b>Don't save passwords:</b> no “Save password?” prompt.</li>
+    <li><b>Don't ask to become the default browser.</b></li>
+    <li><b>Browser icons on the desktop:</b> “Internet (Edge)”, “Internet (Chrome)” and “Internet (Firefox)” – for every installed browser. A browser installed for your account only is missing for guests; the log points this out.</li>
+    <li><b>Fixed start page:</b> type your own link, e.g. your holiday flat's page. Firefox always opens it. Edge and Chrome don't allow this on private PCs – they open the start page via their “Internet (…)” desktop icon.</li>
+    <li>These browser settings apply <b>to guests only</b>, from the next guest – your own account stays unchanged. Untick everything + Apply removes them again.</li>
+  </ul>
+
+  <h3>Wallpaper</h3>
+  <figure><img src="{{BILD:7-einstellungen-hintergrund-en}}" alt="Wallpaper tab"></figure>
+  <p>Your own picture (JPG, PNG or BMP) as desktop wallpaper for every new guest – for example a photo of the flat with the Wi-Fi name and password.
+  Applies from the next guest sign-in. Your own account keeps its wallpaper.</p>
+
+  <h3>Profile picture</h3>
+  <figure><img src="{{BILD:15-einstellungen-profilbild-en}}" alt="Profile picture section"></figure>
+  <p>Your own profile picture for every guest – in the Start menu once the guest is signed in. Either your own photo (cropped to a square) or the penguin logo.
+  Your own account stays unchanged. The picture also appears on the “Guest” tile on the sign-in screen – instead of the figure with the question mark.</p>
+
+  <h3>Autostart</h3>
+  <figure><img src="{{BILD:8-einstellungen-autostart-en}}" alt="Autostart tab"></figure>
+  <p>When a guest signs in, a web page (e.g. your welcome page with house information) or a program opens automatically.
+  Nothing starts for your own account. <b>Use start page</b> fills in the start page from the “Browser” tab.</p>
+  <h3>Desktop</h3>
+  <figure><img src="{{BILD:9-einstellungen-desktop-en}}" alt="Desktop section"></figure>
+  <p>Everything in this list appears on every new guest's desktop: e.g. a PDF with house info, a shortcut to VLC or a web page (button <b>Web page …</b>).
+  Just drag files from Explorer into the list. Programs (.exe) are placed as shortcuts. Your own desktop stays unchanged.</p>
+
+  <h3>Welcome</h3>
+  <figure><img src="{{BILD:10-einstellungen-willkommen-en}}" alt="Welcome section"></figure>
+  <p>After sign-in every guest sees a window – with Wi-Fi name and password, check-out time, your contact and the notice
+  that everything is deleted. The texts are always shown in <b>German, Italian and English together</b>, because you never know who is sitting at the PC. Empty fields are not shown. <b>Preview …</b> shows the window as the guest sees it.</p>
+  <ul>
+    <li><b>Texts per language:</b> under “Texts in language” choose the language and enter check-out, contact, extra field and own text in that language. If a field is empty in one language, the German entry is used. Wi-Fi name and password apply to all.</li>
+    <li><b>Extra field:</b> a field with a label of your choice – label on the left (e.g. “Parking” or “Waste”), content on the right.</li>
+    <li><b>4th language:</b> optionally French, Spanish, Dutch, Polish or Czech. It applies to all guest windows (welcome, notice, “Still there?”) – the fixed texts are already translated.</li>
+  </ul>
+  <figure><img src="{{BILD:13-gast-willkommen-en}}" alt="Guest welcome window"><figcaption>What the guest sees – all languages together</figcaption></figure>
+
+  <h3>Automatic</h3>
+  <figure><img src="{{BILD:11-einstellungen-abmelden-en}}" alt="Automatic section"></figure>
+  <ul>
+    <li><b>Shut the PC down when a guest isn't using it:</b> after 15 minutes up to 4 hours without mouse and keyboard. First “Still there?” appears for 60 seconds (in three languages).
+      If nobody clicks, the PC shuts down – it is fresh again the next time it is switched on. If a video or film is playing, nothing happens. Applies to guests only.</li>
+    <li><b>Restart the PC every day</b> at a fixed time, e.g. 4:00. Whoever is signed in gets a message 5 minutes before.</li>
+    <li><b>Show a notice to guests at sign-in:</b> a small window with fixed text in German, Italian and English: the PC is reset after every guest, everything is deleted.
+      If automatic shutdown or the daily restart are turned on, that is mentioned too. If the welcome window is on, the notice is part of it.</li>
+  </ul>
+  <figure><img src="{{BILD:14-gast-noch-da-en}}" alt="Still there warning"><figcaption>Warning before the automatic shutdown</figcaption></figure>
+  <figure><img src="{{BILD:17-gast-hinweis-en}}" alt="Notice for guests"><figcaption>Notice for guests at sign-in</figcaption></figure>
+
+  <h3>Locks &amp; printer</h3>
+  <figure><img src="{{BILD:12-einstellungen-sperren-en}}" alt="Locks and printer section"></figure>
+  <ul>
+    <li><b>Lock Control Panel and Windows Settings:</b> guests can't change anything in Windows. Wi-Fi, volume and printing still work.</li>
+    <li><b>Lock Command Prompt and Registry Editor.</b></li>
+    <li><b>Block installing programs:</b> guests can't install packages (.msi) or “just for me” programs (e.g. Chrome, Zoom). Programs that need administrator rights can never be installed by guests anyway.</li>
+    <li><b>Block programs from Downloads and the desktop:</b> programs (.exe) that were downloaded or put on the desktop won't start. Programs in <code>C:\Program Files</code> (browsers, Office, VLC …) always work. Side effect: web launchers like Zoom or Teams downloads don't work for guests – joining in the browser works.</li>
+    <li><b>Default printer for guests:</b> guests print e.g. boarding passes straight to this printer. Install the printer with your account first – ideally directly via its IP address, not as a network share.</li>
+    <li>Applies to guests only, your account stays free.</li>
+  </ul>
+
+
+  <h3>Sign-in</h3>
+  <figure><img src="{{BILD:16-einstellungen-anmeldung-en}}" alt="Sign-in section"></figure>
+  <ul>
+    <li><b>Select “Guest” automatically</b> (default): on the sign-in screen Windows otherwise always preselects “Other user”. FreshGuest selects the “Guest” tile by itself after start-up and after every sign-out – guests just click “Sign in”. You still sign in via “Other user” at the bottom left.</li>
+    <li><b>Show “Guest” only:</b> “Other user” disappears completely. <b>Warning:</b> you then reach your account only like this: press <b>Ctrl + Alt + F</b> <b>directly on the sign-in screen</b> (where “Guest” and “Sign in” are shown – do not sign in as a guest first). There is no message: the screen flickers briefly, then “Other user” appears at the bottom left for 10 minutes. Sign in there as usual with user name and Windows password. If a guest is signed in, sign the guest out first. Your account is never switched off – only its tile is hidden. While you are signed in everything stays normal (including locking with Win + L).</li>
+    <li><b>Lock-out protection:</b> after turning on “Show Guest only” you must use the key combination once: restart, press Ctrl + Alt + F within 3 minutes and sign in. Only then does “Other user” stay hidden permanently – otherwise the option turns itself off again.</li>
+  </ul>
+  <div class="note"><b>Emergency</b> (should the key combination ever fail): on the sign-in screen click the power symbol at the bottom right, hold <b>Shift</b> and choose <b>Restart</b>. Then <i>Troubleshoot → Advanced options → Command Prompt</i> and type these four lines (if Windows is not on C: there, adjust the letter), then restart:
+  <pre>reg load HKLM\FG C:\Windows\System32\config\SOFTWARE
+reg delete "HKLM\FG\FreshGuest" /v NurGuest /f
+reg delete "HKLM\FG\Microsoft\Windows\CurrentVersion\Policies\System" /v ExcludedCredentialProviders /f
+reg unload HKLM\FG</pre></div>
+
+  <h2 id="en-daily">Day to day at the holiday flat</h2>
+  <ul>
+    <li><b>Sign-in screen:</b> after start-up FreshGuest selects <b>“Guest”</b> by itself – guests just click “Sign in”. You sign in via <b>“Other user”</b> at the bottom left (type your account's user name and Windows password). If you turned on “Show Guest only”, press <b>Ctrl + Alt + F</b> directly on the sign-in screen first.</li>
+    <li><b>Restart the PC once after every departure</b> – or turn on automatic shutdown or a daily restart under <b>Automatic</b>. If a guest stays signed in, the next one would otherwise see that session.</li>
+    <li><b>Programs for guests</b> (browser, VLC, Office …) you simply install with your account – even while protection is on. They are then available to all guests.</li>
+    <li><b>Windows updates</b> keep running as usual.</li>
+  </ul>
+
+  <h2 id="en-help">Help and maintenance</h2>
+  <h3>Logs to a USB stick</h3>
+  <p>In the program click <b>“Save logs to USB stick”</b>. If exactly one stick is plugged in, it saves straight there.
+  The <code>FreshGuest-Protokolle</code> folder contains no passwords and no personal data – you can pass it on if there is a problem.</p>
+  <h3>Forgot the password</h3>
+  <p>With your Windows account open <i>Command Prompt as administrator</i> and type:</p>
+  <pre>"C:\Program Files\FreshGuest\FreshGuest.exe" --kennwort-zuruecksetzen</pre>
+  <h3>New version</h3>
+  <p>Start the new <code>FreshGuest.exe</code> from the USB stick. It replaces the installed version; password and settings stay.</p>
+  <h3>Uninstall</h3>
+  <p>In the program click <b>Uninstall</b> (password), then restart. Protection and all guest settings are removed.</p>
+
+  <h2 id="en-know">Good to know</h2>
+  <ul>
+    <li>FreshGuest resets <b>only the guest data</b>, not the whole disk. For a guest PC that is enough, because guests without administrator rights cannot change Windows.</li>
+    <li>Guests cannot open FreshGuest: Windows asks for your admin password.</li>
+    <li>Under the hood FreshGuest uses Microsoft's built-in Windows <b>“Shared PC Mode”</b>.</li>
+  </ul>
+</section>
+
+<footer id="foot">FreshGuest {{VERSION}} · © 2026 PowerStore Computers</footer>
+</main>
+
+<script>
+(function () {
+  var taglines = {
+    de: "Gäste-PC, der nach jedem Gast wieder frisch ist",
+    it: "Il PC degli ospiti, di nuovo pulito dopo ogni ospite",
+    en: "The guest PC that's fresh again after every guest"
+  };
+  var titles = { de: "FreshGuest – Anleitung", it: "FreshGuest – Guida", en: "FreshGuest – Guide" };
+  function setLang(code) {
+    if (!taglines[code]) code = "de";
+    document.documentElement.lang = code;
+    document.title = titles[code];
+    document.getElementById("tagline").textContent = taglines[code];
+    var secs = document.querySelectorAll("section[data-lang]");
+    for (var i = 0; i < secs.length; i++) secs[i].classList.toggle("active", secs[i].getAttribute("data-lang") === code);
+    var btns = document.querySelectorAll(".langs button");
+    for (var j = 0; j < btns.length; j++) btns[j].setAttribute("aria-pressed", btns[j].getAttribute("data-set") === code ? "true" : "false");
+    try { localStorage.setItem("freshguest-lang", code); } catch (e) {}
+  }
+  var start = document.documentElement.getAttribute("data-start-lang");
+  if (!start || start === "auto") {
+    try { start = localStorage.getItem("freshguest-lang"); } catch (e) { start = null; }
+    if (!start) start = (navigator.language || "de").slice(0, 2).toLowerCase();
+  }
+  setLang(start);
+  var btns = document.querySelectorAll(".langs button");
+  for (var k = 0; k < btns.length; k++) btns[k].addEventListener("click", function () { setLang(this.getAttribute("data-set")); });
+})();
+</script>
+</body>
+</html>

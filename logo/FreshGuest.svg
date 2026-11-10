@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>FreshGuest – Neon-Pinguin</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="34%" r="78%">
+      <stop offset="0" stop-color="#22237A"/>
+      <stop offset=".65" stop-color="#110F3A"/>
+      <stop offset="1" stop-color="#06071C"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22E4FF"/>
+      <stop offset=".6" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#FF3D9A"/>
+    </linearGradient>
+    <linearGradient id="beak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC24A"/>
+      <stop offset="1" stop-color="#FF3D9A"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M16 0H0V16" fill="none" stroke="#3E46B0" stroke-width="1" opacity=".35"/>
+    </pattern>
+    <clipPath id="tile"><rect width="256" height="256" rx="56"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect width="256" height="256" fill="url(#bg)"/>
+    <rect width="256" height="256" fill="url(#grid)"/>
+  </g>
+  <rect x="1.5" y="1.5" width="253" height="253" rx="55" fill="none" stroke="url(#rim)" stroke-width="3" opacity=".55"/>
+
+  <g filter="url(#glow)" stroke-linejoin="round">
+    <!-- Flügel -->
+    <polygon points="74,112 40,168 54,180 82,154" fill="#6A55F0" stroke="#22E4FF" stroke-width="3"/>
+    <polygon points="182,112 216,168 202,180 174,154" fill="#5A47E6" stroke="#22E4FF" stroke-width="3"/>
+    <!-- Füße -->
+    <polygon points="96,210 124,210 110,226" fill="url(#beak)"/>
+    <polygon points="132,210 160,210 146,226" fill="url(#beak)"/>
+    <!-- Körper: Low-Poly-Facetten -->
+    <polygon points="128,34 90,50 72,84 128,78" fill="#5A47E6"/>
+    <polygon points="128,34 166,50 184,84 128,78" fill="#4A3BD0"/>
+    <polygon points="72,84 128,78 100,112 66,130" fill="#4A3BD0"/>
+    <polygon points="184,84 128,78 156,112 190,130" fill="#3B2DB0"/>
+    <polygon points="66,130 100,112 92,176 72,176" fill="#3B2DB0"/>
+    <polygon points="190,130 156,112 164,176 184,176" fill="#2F2493"/>
+    <polygon points="72,176 92,176 128,214 92,206" fill="#2F2493"/>
+    <polygon points="184,176 164,176 128,214 164,206" fill="#271E7C"/>
+    <!-- Bauch -->
+    <polygon points="128,92 156,112 166,150 128,150" fill="#ECFAFF"/>
+    <polygon points="128,92 100,112 90,150 128,150" fill="#F7FDFF"/>
+    <polygon points="90,150 128,150 128,214 98,192" fill="#DDF5FF"/>
+    <polygon points="166,150 128,150 128,214 158,192" fill="#B8ECFF"/>
+    <!-- Neon-Kontur -->
+    <polygon points="128,34 166,50 184,84 190,130 184,176 164,206 128,214 92,206 72,176 66,130 72,84 90,50"
+             fill="none" stroke="#22E4FF" stroke-width="4.5"/>
+    <!-- Cyber-Visier -->
+    <path d="M90 84 L166 84" stroke="#22E4FF" stroke-width="15" stroke-linecap="round"/>
+    <path d="M98 84 L158 84" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+    <!-- Schnabel -->
+    <polygon points="111,97 145,97 128,122" fill="url(#beak)"/>
+    <!-- Neon-Schneeflocke = frisch -->
+    <g stroke="#22E4FF" stroke-width="4" stroke-linecap="round">
+      <path d="M206 34 L206 66"/>
+      <path d="M192 42 L220 58"/>
+      <path d="M192 58 L220 42"/>
+    </g>
+  </g>
+</svg>

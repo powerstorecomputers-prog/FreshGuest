@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 780 200" width="780" height="200">
+  <title>FreshGuest – Schriftzug (für hellen Hintergrund)</title>
+  <defs>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&amp;display=block');</style>
+  </defs>
+  <image href="FreshGuest.svg" xlink:href="FreshGuest.svg" x="8" y="8" width="184" height="184"/>
+  <text x="220" y="133" font-family="'Chakra Petch', 'Segoe UI Black', sans-serif" font-weight="700" font-size="100"
+        letter-spacing="1" fill="#140F33">FreshGuest</text>
+</svg>

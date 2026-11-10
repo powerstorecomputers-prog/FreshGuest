@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>FreshGuest – Neon-Pinguin (16-24 px)</title>
+  <!-- Vereinfachte Version für sehr kleine Icons: kein Raster, kein Leuchten, keine Schneeflocke, dickere Linien -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22237A"/>
+      <stop offset="1" stop-color="#0A0B2A"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <g stroke-linejoin="round">
+    <polygon points="128,22 84,40 62,82 54,132 62,184 88,216 128,228 168,216 194,184 202,132 194,82 172,40" fill="#4A3BD0"/>
+    <polygon points="128,96 166,118 176,160 160,206 128,220 96,206 80,160 90,118" fill="#F2FBFF"/>
+    <polygon points="128,22 84,40 62,82 54,132 62,184 88,216 128,228 168,216 194,184 202,132 194,82 172,40"
+             fill="none" stroke="#22E4FF" stroke-width="12"/>
+    <path d="M82 80 L174 80" stroke="#22E4FF" stroke-width="26" stroke-linecap="round"/>
+    <polygon points="108,100 148,100 128,128" fill="#FF8A3D"/>
+  </g>
+</svg>

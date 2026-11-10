@@ -1,0 +1,31 @@
+# Gebaute Programme – gehören als Release-Anhang zu GitHub, nicht ins Repo
+*.exe
+*.zip
+
+# Erzeugte Anleitung (anleitung\bauen.ps1) – ebenfalls als Release-Anhang
+FreshGuest-Anleitung.html
+
+# Alte Versionen / Sicherungen
+backup-*/
+*.bak
+* - Kopie.*
+* - Copy.*
+
+# Protokolle (USB-Stick / Testläufe)
+FreshGuest-Protokolle/
+*.log
+
+# Zwischendateien von logo\render.ps1
+logo/_render_*.html
+
+# Lokale Einstellungen von Werkzeugen
+.claude/settings.local.json
+.vs/
+.vscode/
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Test-Skripte aus der Entwicklung (nicht veroeffentlichen)
+alt-tests/
