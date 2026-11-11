@@ -2615,9 +2615,9 @@ namespace GaesteSchutz
             chkChoice = AddCheck(t, L.T("Gäste dürfen die Windows-Sprache selbst wählen", "Gli ospiti possono scegliere la lingua di Windows",
                 "Guests may choose the Windows language themselves"), 322, GuestExtras.ChoiceOn(store));
             Indent(AddInfo(t, L.T(
-                "Beim Anmelden sieht der Gast zuerst nur die Flaggen. Wählt er eine andere Sprache, meldet sich der PC kurz ab und wieder an – dann kommt das Willkommen nur in seiner Sprache. Der nächste Gast bekommt wieder die Standardsprache.",
-                "All'accesso l'ospite vede prima solo le bandiere. Se sceglie un'altra lingua, il PC si disconnette per un attimo e si riconnette – poi il benvenuto appare solo nella sua lingua. L'ospite successivo riceve di nuovo la lingua predefinita.",
-                "At sign-in the guest first sees only the flags. If they choose another language, the PC signs out briefly and back in – then the welcome appears in their language only. The next guest gets the default language again."),
+                "Beim Anmelden sieht der Gast zuerst nur die Flaggen (Deutsch, Italienisch, Englisch, Spanisch; Französisch, wenn installiert). Wählt er eine andere Sprache, meldet sich der PC kurz ab und wieder an – dann kommt das Willkommen nur in seiner Sprache. Der nächste Gast bekommt wieder die Standardsprache.",
+                "All'accesso l'ospite vede prima solo le bandiere (tedesco, italiano, inglese, spagnolo; francese, se installato). Se sceglie un'altra lingua, il PC si disconnette per un attimo e si riconnette – poi il benvenuto appare solo nella sua lingua. L'ospite successivo riceve di nuovo la lingua predefinita.",
+                "At sign-in the guest first sees only the flags (German, Italian, English, Spanish; French if installed). If they choose another language, the PC signs out briefly and back in – then the welcome appears in their language only. The next guest gets the default language again."),
                 350, 80), 32);
         }
 
@@ -3351,6 +3351,8 @@ namespace GaesteSchutz
                 Shot(new LanguageForm(false), Path.Combine(dir, "19-gast-sprachwahl" + sfx + ".png"));
                 Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false, code == "de" ? "it" : code == "it" ? "de" : "es"),
                     Path.Combine(dir, "20-gast-willkommen-eine-sprache" + sfx + ".png"));
+                if (code == "en")       // nur zur Kontrolle (nicht in der Anleitung): Französisch nach der Sprachwahl
+                    Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false, "fr"), Path.Combine(dir, "21-gast-willkommen-fr.png"));
 
                 if (code == "de")
                 {

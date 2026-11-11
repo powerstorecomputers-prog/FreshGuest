@@ -70,9 +70,9 @@ namespace GaesteSchutz
                          "✔ Guests can choose the Windows language themselves (") + count + L.T(" Sprachen).", " lingue).", " languages).")
                    : L.T("Sprachwahl für Gäste aus.", "Scelta della lingua per gli ospiti disattivata.", "Language choice for guests off."));
             if (on && count < 2)
-                log(L.T("   Hinweis: Von Deutsch, Italienisch, Englisch und Spanisch ist auf diesem PC höchstens ein Sprachpaket installiert – es gibt noch nichts zu wählen.",
-                        "   Nota: di tedesco, italiano, inglese e spagnolo su questo PC è installato al massimo un pacchetto di lingua – non c'è ancora nulla da scegliere.",
-                        "   Note: of German, Italian, English and Spanish at most one language pack is installed on this PC – there is nothing to choose yet."));
+                log(L.T("   Hinweis: Von Deutsch, Italienisch, Englisch, Spanisch und Französisch ist auf diesem PC höchstens ein Sprachpaket installiert – es gibt noch nichts zu wählen.",
+                        "   Nota: di tedesco, italiano, inglese, spagnolo e francese su questo PC è installato al massimo un pacchetto di lingua – non c'è ancora nulla da scegliere.",
+                        "   Note: of German, Italian, English, Spanish and French at most one language pack is installed on this PC – there is nothing to choose yet."));
         }
     }
 
@@ -236,6 +236,10 @@ namespace GaesteSchutz
                             "Al momento non è stato possibile cambiare la lingua. Riprova più tardi." } },
             { "en", new[] { "Windows will be switched to English. The PC signs out briefly and signs straight back in (about a minute). Everything you have done so far will be deleted.\n\nSwitch now?",
                             "The language could not be switched right now. Please try again later." } },
+            { "es", new[] { "Windows se cambiará a español. El PC cierra la sesión un momento y la vuelve a abrir enseguida (aproximadamente un minuto). Todo lo que hayas hecho hasta ahora se borrará.\n\n¿Cambiar ahora?",
+                            "No se ha podido cambiar el idioma en este momento. Inténtalo de nuevo más tarde." } },
+            { "fr", new[] { "Windows va passer en français. Le PC se déconnecte un instant et se reconnecte aussitôt (environ une minute). Tout ce que tu as fait jusqu'ici sera effacé.\n\nChanger maintenant ?",
+                            "La langue n'a pas pu être changée pour le moment. Réessaie plus tard." } },
         };
 
         // Kurzer Name auf dem Knopf: „Deutsch“, „Italiano“ … (bei zwei Varianten derselben Sprache mit Land)
@@ -255,16 +259,17 @@ namespace GaesteSchutz
         // Gibt es etwas zu wählen? (mindestens zwei Sprachpakete)
         public static bool Available() { return ChoiceLanguages().Count >= 2; }
 
-        // Zur Wahl für Gäste: nur Deutsch, Italienisch, Englisch und Spanisch (sofern das Sprachpaket installiert ist)
-        public static readonly string[] Allowed = { "de", "it", "en", "es" };
+        // Zur Wahl für Gäste: Deutsch, Italienisch, Englisch, Spanisch und Französisch (sofern das Sprachpaket installiert ist)
+        public static readonly string[] Allowed = { "de", "it", "en", "es", "fr" };
         public static List<string> ChoiceLanguages()
         {
+            if (Program.Demo) return new List<string> { "de-DE", "it-IT", "en-GB", "es-ES", "fr-FR" };   // Vorschau/Bilder: alle Flaggen
             return GuestExtras.InstalledUiLanguages()
                 .Where(t => Allowed.Contains(t.Split('-')[0].ToLowerInvariant()))
                 .OrderBy(t => Array.IndexOf(Allowed, t.Split('-')[0].ToLowerInvariant())).ToList();
         }
 
-        // "it-IT" -> "it" (nur die vier Gast-Sprachen, sonst null)
+        // "it-IT" -> "it" (nur die Gast-Sprachen aus Allowed, sonst null)
         public static string LangOf(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return null;
@@ -563,7 +568,10 @@ namespace GaesteSchutz
         {
             List<string> langs = GuestSwitch.ChoiceLanguages();
             if (langs.Count == 0) langs.Add(CultureInfo.CurrentUICulture.Name);
-            const int tile = 200, gap = 16, pad = 28;
+            const int gap = 16, pad = 28;
+            // Flaggen so groß wie möglich, aber alle in einer Reihe auf dem Bildschirm (fünf mit Französisch)
+            int screen = Screen.PrimaryScreen.WorkingArea.Width;
+            int tile = Math.Max(140, Math.Min(200, (screen - 40 - pad * 2 - (langs.Count - 1) * gap) / langs.Count));
             int w = Math.Max(640, pad * 2 + langs.Count * tile + (langs.Count - 1) * gap);
             Ui.Style(this, w, 300);
             MinimizeBox = false;
@@ -577,6 +585,8 @@ namespace GaesteSchutz
             var shown = langs.Select(t => GuestTexts.Find(GuestSwitch.LangOf(t) ?? "en") ?? GuestTexts.All[0]).ToList();
             var title = Ui.MakeLabel(string.Join("   ", shown.Select(l => l.Choose).Distinct().ToArray()), pad, y, w - 2 * pad, 40);
             title.Font = new Font("Segoe UI Semibold", 17f);
+            while (title.Font.Size > 11f && TextRenderer.MeasureText(title.Text, title.Font).Width > title.Width)
+                title.Font = new Font("Segoe UI Semibold", title.Font.Size - 1f);
             Controls.Add(title);
             y += 58;
 

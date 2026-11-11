@@ -54,7 +54,13 @@ namespace GaesteSchutz
             value = (value ?? "").Trim();
             if (value.Length == 0) vals.Remove(field + "|" + slot); else vals[field + "|" + slot] = value;
         }
-        public string Get(string field, string slot) { string v = Raw(field, slot); return v.Length > 0 ? v : Raw(field, "de"); }
+        // Französisch (nur als Gast-Sprache, ohne eigene Felder): erst der englische, dann der deutsche Eintrag
+        public string Get(string field, string slot)
+        {
+            string v = Raw(field, slot);
+            if (v.Length == 0 && Array.IndexOf(Slots, slot) < 0) v = Raw(field, "en");
+            return v.Length > 0 ? v : Raw(field, "de");
+        }
 
         // Name in Registry/Speicher: W_Checkout (Deutsch), W_Checkout_it, W_Checkout_en, W_Checkout_4
         public static string Key(string field, string slot) { return "W_" + field + (slot == "de" ? "" : "_" + slot); }
@@ -525,7 +531,16 @@ namespace GaesteSchutz
                 IdleWarn = "El PC lleva un rato sin usarse. Se apagará en {0} segundos y se borrará todo." },
         };
 
-        public static GuestLang Find(string code) { return All.FirstOrDefault(l => l.Code == code); }
+        // Französisch: nur, wenn der Gast es über die Flaggen wählt (Sprachpaket installiert). Die Fenster mit allen
+        // Sprachen nebeneinander und die Einstellungen bleiben bei den vier Sprachen oben.
+        public static readonly GuestLang Fr =
+            new GuestLang { Code = "fr", Name = "Français", Welcome = "Bienvenue !", Note = "Attention", StillThere = "Toujours là ?", StillHere = "Je suis encore là", Contact = "Contact",
+                Reset = "Ce PC est réinitialisé après chaque client. À la déconnexion, à l'arrêt ou au redémarrage, tout est effacé : téléchargements, fichiers et connexions (Gmail, Netflix …). Enregistre d'abord les fichiers importants sur une clé USB ou imprime-les.",
+                Idle = "Si le PC n'est pas utilisé pendant {0} minutes, il s'éteint automatiquement.",
+                Restart = "Chaque jour à {0} le PC redémarre automatiquement.",
+                IdleWarn = "Le PC n'a pas été utilisé depuis un moment. Il s'éteint dans {0} secondes – et tout sera effacé." };
+
+        public static GuestLang Find(string code) { return All.FirstOrDefault(l => l.Code == code) ?? (code == "fr" ? Fr : null); }
         // (früher wählbar: eine vierte Sprache – jetzt sind es immer diese vier)
         public static IEnumerable<GuestLang> Extras { get { return Enumerable.Empty<GuestLang>(); } }
         public static bool IsExtra(string code) { return false; }
@@ -539,11 +554,12 @@ namespace GaesteSchutz
             { "it", new[] { "Scegli la lingua", "Altra lingua", "Wi-Fi", "Password" } },
             { "en", new[] { "Choose your language", "Other language", "Wi-Fi", "Password" } },
             { "es", new[] { "Elige tu idioma", "Otro idioma", "Wi-Fi", "Contraseña" } },
+            { "fr", new[] { "Choisis ta langue", "Autre langue", "Wi-Fi", "Mot de passe" } },
         };
 
         static GuestTexts()
         {
-            foreach (GuestLang l in All)
+            foreach (GuestLang l in All.Concat(new[] { Fr }))
             {
                 string[] m;
                 if (!More.TryGetValue(l.Code, out m)) m = More["en"];
@@ -551,7 +567,7 @@ namespace GaesteSchutz
             }
         }
 
-        // Nur diese eine Sprache (Code de/it/en/es) – oder alle, wenn code leer/unbekannt
+        // Nur diese eine Sprache (Code de/it/en/es/fr) – oder alle vier, wenn code leer/unbekannt
         public static List<GuestLang> Only(string code)
         {
             GuestLang one = string.IsNullOrEmpty(code) ? null : Find(code);
