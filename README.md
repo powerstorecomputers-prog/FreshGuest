@@ -58,7 +58,7 @@ All settings apply to guests only – your own account stays as it is.
 - **Wallpaper** and **profile picture** for guests – the picture also replaces the grey question-mark figure on the “Guest” tile of the sign-in screen
 - **Desktop** – files, programs and links every new guest finds on the desktop
 - **Autostart** – open a page or program when a guest signs in
-- **Welcome window** – Wi-Fi name and password; check-out, contact, an extra field of your choice and your own text, each per language (German, Italian, English, Spanish, French)
+- **Welcome window** – Wi-Fi name and password; check-out, contact, an extra field of your choice and your own text, each per language (German, Italian, English, Spanish, French, plus one more language of your choice)
 - **Automatic** – shut the PC down when a guest leaves it unused (after a 60-second “Still there?”), restart daily at a fixed time, show a notice that the PC is reset after every guest
 - **Locks & printer** – lock Control Panel / Settings, command prompt, registry editor, installing programs and running programs from Downloads; default printer for guests
 - **Language** – the Windows display language for guests, chosen from the language packs installed on the PC (otherwise guests get the language Windows was installed with); optionally guests first see only flag buttons (German, Italian, English, Spanish – plus French if its language pack is installed) – after picking one, the PC signs out briefly and back in, and the welcome window appears in that language only

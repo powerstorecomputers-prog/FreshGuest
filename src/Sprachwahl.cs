@@ -238,6 +238,14 @@ namespace GaesteSchutz
                             "The language could not be switched right now. Please try again later." } },
             { "es", new[] { "Windows se cambiará a español. El PC cierra la sesión un momento y la vuelve a abrir enseguida (aproximadamente un minuto). Todo lo que hayas hecho hasta ahora se borrará.\n\n¿Cambiar ahora?",
                             "No se ha podido cambiar el idioma en este momento. Inténtalo de nuevo más tarde." } },
+            { "nl", new[] { "Windows wordt omgezet naar het Nederlands. De pc meldt zich daarvoor even af en meteen weer aan (ongeveer een minuut). Alles wat je tot nu toe hebt gedaan, wordt gewist.\n\nNu omzetten?",
+                            "De taal kon nu niet worden gewijzigd. Probeer het later opnieuw." } },
+            { "pl", new[] { "Windows zostanie przełączony na język polski. Komputer na chwilę się wyloguje i od razu ponownie zaloguje (około minuty). Wszystko, co do tej pory zrobiono, zostanie usunięte.\n\nPrzełączyć teraz?",
+                            "Nie udało się teraz zmienić języka. Spróbuj ponownie później." } },
+            { "pt", new[] { "O Windows vai mudar para português. O PC termina a sessão por um momento e volta a iniciá-la logo (cerca de um minuto). Tudo o que fez até agora será apagado.\n\nMudar agora?",
+                            "Não foi possível mudar o idioma agora. Tente novamente mais tarde." } },
+            { "cs", new[] { "Windows se přepne do češtiny. Počítač se na chvíli odhlásí a hned znovu přihlásí (asi minutu). Vše, co jste dosud udělali, bude smazáno.\n\nPřepnout nyní?",
+                            "Jazyk teď nebylo možné přepnout. Zkuste to prosím později." } },
             { "fr", new[] { "Windows va passer en français. Le PC se déconnecte un instant et se reconnecte aussitôt (environ une minute). Tout ce que tu as fait jusqu'ici sera effacé.\n\nChanger maintenant ?",
                             "La langue n'a pas pu être changée pour le moment. Réessaie plus tard." } },
         };
@@ -261,12 +269,35 @@ namespace GaesteSchutz
 
         // Zur Wahl für Gäste: Deutsch, Italienisch, Englisch, Spanisch und Französisch (sofern das Sprachpaket installiert ist)
         public static readonly string[] Allowed = { "de", "it", "en", "es", "fr" };
+
+        // Zusätzliche Sprache aus den Willkommen-Einstellungen („+“), z. B. "nl-NL" – oder null
+        public static string ExtraTag()
+        {
+            try
+            {
+                using (RegistryKey k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\FreshGuest"))
+                {
+                    string v = k == null ? "" : Convert.ToString(k.GetValue("GastSprache4", ""));
+                    return GuestTexts.IsExtra(v) ? v : null;
+                }
+            }
+            catch { return null; }
+        }
+
+        // Sprachen, die Gäste wählen können: die festen + die zusätzliche
+        static string[] Codes()
+        {
+            string x = ExtraTag();
+            return x == null ? Allowed : Allowed.Concat(new[] { WelcomeInfo.SlotOf(x) }).ToArray();
+        }
+
         public static List<string> ChoiceLanguages()
         {
             if (Program.Demo) return new List<string> { "de-DE", "it-IT", "en-GB", "es-ES", "fr-FR" };   // Vorschau/Bilder: alle Flaggen
+            string[] codes = Codes();
             return GuestExtras.InstalledUiLanguages()
-                .Where(t => Allowed.Contains(t.Split('-')[0].ToLowerInvariant()))
-                .OrderBy(t => Array.IndexOf(Allowed, t.Split('-')[0].ToLowerInvariant())).ToList();
+                .Where(t => codes.Contains(t.Split('-')[0].ToLowerInvariant()))
+                .OrderBy(t => Array.IndexOf(codes, t.Split('-')[0].ToLowerInvariant())).ToList();
         }
 
         // "it-IT" -> "it" (nur die Gast-Sprachen aus Allowed, sonst null)
@@ -274,7 +305,7 @@ namespace GaesteSchutz
         {
             if (string.IsNullOrEmpty(tag)) return null;
             string two = tag.Split('-')[0].ToLowerInvariant();
-            return Allowed.Contains(two) ? two : null;
+            return Codes().Contains(two) ? two : null;
         }
 
         // Sprache, die jeder neue Gast bekommt (Einstellung „Windows-Sprache für Gäste“, sonst die Installationssprache)
@@ -420,19 +451,21 @@ namespace GaesteSchutz
     }
 
     // Kleiner Flaggen-Reiter in den Einstellungen (Willkommen): welche Sprache gerade bearbeitet wird.
-    // Selected = wird bearbeitet (violett, Neon-Rahmen); Filled = in dieser Sprache steht schon Text (✔).
+    // Nur die Flagge (Name als Tooltip und neben den Reitern). Slot "+" = Knopf „weitere Sprache hinzufügen“.
+    // Selected = wird bearbeitet (violett, Neon-Rahmen); Filled = in dieser Sprache steht schon Text (grünes ✔ an der Flagge).
     class LangTab : Control
     {
-        public readonly string LangTag;
+        public readonly string Slot, FlagTag;
         bool selected, filled, hot;
         public bool Selected { get { return selected; } set { selected = value; Invalidate(); } }
         public bool Filled { get { return filled; } set { filled = value; Invalidate(); } }
 
-        public LangTab(string tag, string name)
+        public LangTab(string slot, string flagTag, string name)
         {
-            LangTag = tag;
+            Slot = slot;
+            FlagTag = flagTag;
             Text = name;
-            Font = new Font("Segoe UI Semibold", 8.5f);
+            Font = new Font("Segoe UI Semibold", 14f);
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         }
@@ -448,30 +481,74 @@ namespace GaesteSchutz
             g.Clear(Parent != null ? Parent.BackColor : Ui.Surface);
             var r = new Rectangle(0, 0, Width - 1, Height - 1);
             using (var br = new SolidBrush(selected ? Ui.Blue : hot && Enabled ? Ui.FieldHover : Ui.Field)) g.FillRectangle(br, r);
-            int pad = (int)(5 * k);
-            int fh = Height - 2 * (int)(8 * k), fw = fh * 3 / 2;
-            var fr = new Rectangle(pad, (Height - fh) / 2, fw, fh);
-            Flags.Draw(g, fr, LangTag);
-            using (var pen = new Pen(Color.FromArgb(120, 0, 0, 0))) g.DrawRectangle(pen, fr);
-            if (!Enabled)
-                using (var br = new SolidBrush(Color.FromArgb(150, Ui.Field))) g.FillRectangle(br, fr);
-            var tr = Rectangle.FromLTRB(fr.Right + pad + (int)(2 * k), 0, Width - (int)(3 * k), Height);
-            TextRenderer.DrawText(g, Text, Font, tr, Enabled ? Color.White : Ui.Disabled,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
-            // Grünes ✔ unten rechts an der Flagge, wenn in dieser Sprache schon etwas steht
-            if (filled)
+            if (Slot == "+")
             {
-                int d = (int)(12 * k);
-                var c = new Rectangle(fr.Right - d + (int)(2 * k), fr.Bottom - d + (int)(3 * k), d, d);
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var br = new SolidBrush(Enabled ? Color.FromArgb(27, 160, 80) : Ui.Disabled)) g.FillEllipse(br, c);
-                using (var pen = new Pen(Color.White, 1.6f * k))
-                    g.DrawLines(pen, new[] { new PointF(c.X + d * 0.25f, c.Y + d * 0.52f), new PointF(c.X + d * 0.43f, c.Y + d * 0.70f),
-                                             new PointF(c.X + d * 0.76f, c.Y + d * 0.32f) });
-                g.SmoothingMode = SmoothingMode.None;
+                TextRenderer.DrawText(g, "+", Font, r, Enabled ? Logo.Cyan : Ui.Disabled,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            }
+            else
+            {
+                int fh = Height - 2 * (int)(7 * k), fw = fh * 3 / 2;
+                var fr = new Rectangle((Width - fw) / 2, (Height - fh) / 2, fw, fh);
+                Flags.Draw(g, fr, FlagTag);
+                using (var pen = new Pen(Color.FromArgb(120, 0, 0, 0))) g.DrawRectangle(pen, fr);
+                if (!Enabled)
+                    using (var br = new SolidBrush(Color.FromArgb(150, Ui.Field))) g.FillRectangle(br, fr);
+                if (filled)
+                {
+                    int d = (int)(12 * k);
+                    var c = new Rectangle(fr.Right - d + (int)(4 * k), fr.Bottom - d + (int)(4 * k), d, d);
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    using (var br = new SolidBrush(Enabled ? Color.FromArgb(27, 160, 80) : Ui.Disabled)) g.FillEllipse(br, c);
+                    using (var pen = new Pen(Color.White, 1.6f * k))
+                        g.DrawLines(pen, new[] { new PointF(c.X + d * 0.25f, c.Y + d * 0.52f), new PointF(c.X + d * 0.43f, c.Y + d * 0.70f),
+                                                 new PointF(c.X + d * 0.76f, c.Y + d * 0.32f) });
+                    g.SmoothingMode = SmoothingMode.None;
+                }
             }
             using (var pen = new Pen(selected && Enabled ? Logo.Cyan : Ui.Border, selected ? 2f * k : 1f))
                 g.DrawRectangle(pen, selected ? Rectangle.Inflate(r, -(int)k, -(int)k) : r);
+        }
+    }
+
+    // „+“ in den Willkommen-Einstellungen: weitere Sprache wählen, ändern oder entfernen
+    class ExtraLangForm : Form
+    {
+        public string Result;      // gewählte Sprache (z. B. "nl-NL") oder null
+        public bool RemoveIt;      // „Entfernen“ geklickt
+
+        public ExtraLangForm(List<string> tags, string cur)
+        {
+            Ui.Style(this, 460, 256);
+            Text = L.AppName;
+            MinimizeBox = false;
+            ShowInTaskbar = false;
+            StartPosition = FormStartPosition.CenterParent;
+            var info = Ui.MakeLabel(L.T(
+                "Weitere Sprache für das Willkommen. Gäste können sie über ihre Flagge wählen (Sprachwahl im Reiter „Sprache“). Feste Hinweise kommen bei Niederländisch, Polnisch, Portugiesisch und Tschechisch in der Sprache, sonst auf Englisch.",
+                "Un'altra lingua per il benvenuto. Gli ospiti possono sceglierla con la sua bandiera (scelta della lingua nella scheda «Lingua»). Gli avvisi fissi sono in quella lingua per olandese, polacco, portoghese e ceco, altrimenti in inglese.",
+                "Another language for the welcome. Guests can pick it with its flag (language choice in the \"Language\" tab). Fixed notices are in that language for Dutch, Polish, Portuguese and Czech, otherwise in English."),
+                20, 16, 420, 104);
+            info.ForeColor = Ui.Muted;
+            Controls.Add(info);
+            var cb = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(20, 128), Width = 420 };
+            Controls.Add(cb);
+            foreach (string tg in tags) cb.Items.Add(GuestExtras.LanguageName(tg));
+            cb.SelectedIndex = Math.Max(0, cur == null ? 0 : tags.IndexOf(cur));
+            var ok = Ui.MakeButton("OK", 300, 196, 140, 40, true);
+            ok.Click += (s, e) => { Result = tags[cb.SelectedIndex]; Close(); };
+            Controls.Add(ok);
+            var cancel = Ui.MakeButton(L.T("Abbrechen", "Annulla", "Cancel"), 170, 196, 120, 40, false);
+            cancel.Click += (s, e) => Close();
+            Controls.Add(cancel);
+            if (cur != null)
+            {
+                var del = Ui.MakeButton(L.T("Entfernen", "Rimuovi", "Remove"), 20, 196, 130, 40, false);
+                del.Click += (s, e) => { RemoveIt = true; Close(); };
+                Controls.Add(del);
+            }
+            AcceptButton = ok;
+            CancelButton = cancel;
         }
     }
 

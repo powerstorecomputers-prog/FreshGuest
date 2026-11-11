@@ -39,7 +39,7 @@ namespace GaesteSchutz
         public string Wlan = "", WlanPw = "";
         public int IdleMin;
         public string RestartTime = "";      // täglicher Neustart (für den Hinweis), leer = aus
-        public string Lang4 = "";            // nicht mehr benutzt (früher: wählbare vierte Sprache) – Spanisch ist jetzt fest dabei
+        public string Lang4 = "";            // zusätzliche Sprache („+“ in den Einstellungen), z. B. "nl-NL" – leer = keine
         public bool LangChoice;              // Knöpfe „Windows: Deutsch / Italiano / English“ zeigen
 
         // Felder je Sprache. "de" ist die Grundlage: Bleibt ein Feld in einer anderen Sprache leer, gilt der deutsche Eintrag.
@@ -55,12 +55,26 @@ namespace GaesteSchutz
             value = (value ?? "").Trim();
             if (value.Length == 0) vals.Remove(field + "|" + slot); else vals[field + "|" + slot] = value;
         }
-        // Französisch leer: erst der englische, dann der deutsche Eintrag
+        // Leer: bei Französisch und der zusätzlichen Sprache erst der englische, sonst gleich der deutsche Eintrag
         public string Get(string field, string slot)
         {
             string v = Raw(field, slot);
-            if (v.Length == 0 && slot == "fr") v = Raw(field, "en");
+            if (v.Length == 0 && slot != "de" && slot != "it" && slot != "es") v = Raw(field, "en");
             return v.Length > 0 ? v : Raw(field, "de");
+        }
+
+        // "nl-NL" -> "nl"
+        public static string SlotOf(string tag) { return (tag ?? "").Split('-')[0].ToLowerInvariant(); }
+
+        // Feste Sprachen + die zusätzliche (falls gewählt)
+        public List<string> AllSlots
+        {
+            get
+            {
+                var l = Slots.ToList();
+                if (GuestTexts.IsExtra(Lang4)) l.Add(SlotOf(Lang4));
+                return l;
+            }
         }
 
         // Name in Registry/Speicher: W_Checkout (Deutsch), W_Checkout_it, W_Checkout_en, W_Checkout_4
@@ -68,9 +82,9 @@ namespace GaesteSchutz
 
         public bool SameTexts(WelcomeInfo o)
         {
-            if (Wlan != o.Wlan || WlanPw != o.WlanPw) return false;
+            if (Wlan != o.Wlan || WlanPw != o.WlanPw || Lang4 != o.Lang4) return false;
             foreach (string f in LangFields)
-                foreach (string s in Slots)
+                foreach (string s in AllSlots.Union(o.AllSlots))
                     if (Raw(f, s) != o.Raw(f, s)) return false;
             return true;
         }
@@ -264,14 +278,14 @@ namespace GaesteSchutz
         public static bool WelcomeOn(Store s) { return s.Get("Willkommen") == "1"; }
         public static bool NoticeOn(Store s) { return s.Get("Hinweis") == "1"; }
         public static int IdleMinutes(Store s) { int v; return int.TryParse(s.Get("AbmeldenMin"), out v) ? v : 0; }
-        public static string Lang4(Store s) { return ""; }
+        public static string Lang4(Store s) { string v = s.Get("Sprache4"); return GuestTexts.IsExtra(v) ? v : ""; }
 
         public static WelcomeInfo WelcomeFromStore(Store s)
         {
             var w = new WelcomeInfo { Wlan = s.Get("W_WLAN") ?? "", WlanPw = s.Get("W_WLANKennwort") ?? "", IdleMin = IdleMinutes(s),
                 RestartTime = RestartTime(s) ?? "", Lang4 = Lang4(s), LangChoice = s.Get("Sprachwahl") == "1" };
             foreach (string f in WelcomeInfo.LangFields)
-                foreach (string slot in WelcomeInfo.Slots) w.Set(f, slot, s.Get(WelcomeInfo.Key(f, slot)));
+                foreach (string slot in w.AllSlots) w.Set(f, slot, s.Get(WelcomeInfo.Key(f, slot)));
             return w;
         }
 
@@ -282,7 +296,7 @@ namespace GaesteSchutz
             d["W_WLAN"] = w.Wlan.Trim();
             d["W_WLANKennwort"] = w.WlanPw.Trim();
             foreach (string f in WelcomeInfo.LangFields)
-                foreach (string slot in WelcomeInfo.Slots) d[WelcomeInfo.Key(f, slot)] = w.Raw(f, slot);
+                foreach (string slot in w.AllSlots) d[WelcomeInfo.Key(f, slot)] = w.Raw(f, slot);
             return d;
         }
 
@@ -298,6 +312,8 @@ namespace GaesteSchutz
                     foreach (var kv in vals)
                         if (welcomeOn && kv.Value.Length > 0) k.SetValue(kv.Key, kv.Value, RegistryValueKind.String);
                         else k.DeleteValue(kv.Key, false);
+                    foreach (string n in k.GetValueNames())         // Texte einer entfernten zusätzlichen Sprache
+                        if (n.StartsWith("W_", StringComparison.Ordinal) && !vals.ContainsKey(n)) k.DeleteValue(n, false);
                     if (idleMin > 0) k.SetValue("GastAbmeldenMin", idleMin.ToString(), RegistryValueKind.String);
                     else k.DeleteValue("GastAbmeldenMin", false);
                     if (noticeOn) k.SetValue("GastHinweis", "1", RegistryValueKind.String);
@@ -310,6 +326,8 @@ namespace GaesteSchutz
             if (welcomeOn) store.Set("Willkommen", "1"); else store.Remove("Willkommen");
             foreach (var kv in vals)
                 if (kv.Value.Length > 0) store.Set(kv.Key, kv.Value); else store.Remove(kv.Key);
+            foreach (string n in store.Keys)
+                if (n.StartsWith("W_", StringComparison.Ordinal) && !vals.ContainsKey(n)) store.Remove(n);
             if (idleMin > 0) store.Set("AbmeldenMin", idleMin.ToString()); else store.Remove("AbmeldenMin");
             if (noticeOn) store.Set("Hinweis", "1"); else store.Remove("Hinweis");
             if (lang4.Length > 0) store.Set("Sprache4", lang4); else store.Remove("Sprache4");
@@ -348,10 +366,10 @@ namespace GaesteSchutz
                     w.RestartTime = Convert.ToString(k.GetValue("GastNeustartZeit", ""));
                     w.Wlan = Convert.ToString(k.GetValue("W_WLAN", ""));
                     w.WlanPw = Convert.ToString(k.GetValue("W_WLANKennwort", ""));
-                    foreach (string f in WelcomeInfo.LangFields)
-                        foreach (string slot in WelcomeInfo.Slots) w.Set(f, slot, Convert.ToString(k.GetValue(WelcomeInfo.Key(f, slot), "")));
                     string l4 = Convert.ToString(k.GetValue("GastSprache4", ""));
                     w.Lang4 = GuestTexts.IsExtra(l4) ? l4 : "";
+                    foreach (string f in WelcomeInfo.LangFields)
+                        foreach (string slot in w.AllSlots) w.Set(f, slot, Convert.ToString(k.GetValue(WelcomeInfo.Key(f, slot), "")));
                     w.IdleMin = idle;
                 }
                 if (string.IsNullOrEmpty(target) && !welcome && idle <= 0 && !picture && !notice && !w.LangChoice) return;
@@ -541,10 +559,60 @@ namespace GaesteSchutz
                 Restart = "Chaque jour à {0} le PC redémarre automatiquement.",
                 IdleWarn = "Le PC n'a pas été utilisé depuis un moment. Il s'éteint dans {0} secondes – et tout sera effacé." };
 
-        public static GuestLang Find(string code) { return All.FirstOrDefault(l => l.Code == code) ?? (code == "fr" ? Fr : null); }
-        // (früher wählbar: eine vierte Sprache – jetzt sind es immer diese vier)
+        // Feste Gast-Texte für häufige zusätzliche Sprachen („+“ in den Einstellungen). Andere Sprachen: englische Texte.
+        static readonly GuestLang[] Builtin = {
+            new GuestLang { Code = "nl", Name = "Nederlands", Welcome = "Welkom!", Note = "Let op", StillThere = "Ben je er nog?", StillHere = "Ik ben er nog", Contact = "Contact",
+                Reset = "Deze pc wordt na elke gast teruggezet. Bij afmelden, afsluiten of opnieuw opstarten wordt alles gewist: downloads, bestanden en aanmeldingen (Gmail, Netflix …). Sla belangrijke bestanden eerst op een USB-stick op of druk ze af.",
+                Idle = "Als de pc {0} minuten niet wordt gebruikt, wordt hij automatisch uitgeschakeld.",
+                Restart = "Elke dag om {0} wordt de pc automatisch opnieuw opgestart.",
+                IdleWarn = "De pc is een tijdje niet gebruikt. Over {0} seconden wordt hij uitgeschakeld – en wordt alles gewist." },
+            new GuestLang { Code = "pl", Name = "Polski", Welcome = "Witamy!", Note = "Uwaga", StillThere = "Jesteś tam jeszcze?", StillHere = "Jestem tutaj", Contact = "Kontakt",
+                Reset = "Ten komputer jest resetowany po każdym gościu. Po wylogowaniu, wyłączeniu lub ponownym uruchomieniu wszystko zostaje usunięte: pobrane pliki, dokumenty i logowania (Gmail, Netflix …). Ważne pliki zapisz wcześniej na pendrivie lub wydrukuj.",
+                Idle = "Jeśli komputer nie jest używany przez {0} minut, wyłącza się automatycznie.",
+                Restart = "Codziennie o {0} komputer automatycznie uruchamia się ponownie.",
+                IdleWarn = "Komputer od pewnego czasu nie był używany. Za {0} sekund się wyłączy – i wszystko zostanie usunięte." },
+            new GuestLang { Code = "pt", Name = "Português", Welcome = "Bem-vindo!", Note = "Atenção", StillThere = "Ainda está aí?", StillHere = "Ainda estou aqui", Contact = "Contacto",
+                Reset = "Este PC é reposto após cada hóspede. Ao terminar a sessão, desligar ou reiniciar, tudo é apagado: transferências, ficheiros e inícios de sessão (Gmail, Netflix …). Guarde antes os ficheiros importantes numa pen USB ou imprima-os.",
+                Idle = "Se o PC não for utilizado durante {0} minutos, desliga-se automaticamente.",
+                Restart = "Todos os dias às {0} o PC reinicia automaticamente.",
+                IdleWarn = "O PC não é utilizado há algum tempo. Desliga-se dentro de {0} segundos – e tudo será apagado." },
+            new GuestLang { Code = "cs", Name = "Čeština", Welcome = "Vítejte!", Note = "Upozornění", StillThere = "Jste tu ještě?", StillHere = "Ještě jsem tu", Contact = "Kontakt",
+                Reset = "Tento počítač se po každém hostovi obnoví. Při odhlášení, vypnutí nebo restartu se vše smaže: stažené soubory, dokumenty a přihlášení (Gmail, Netflix …). Důležité soubory si předem uložte na USB flash disk nebo je vytiskněte.",
+                Idle = "Pokud se počítač {0} minut nepoužívá, automaticky se vypne.",
+                Restart = "Každý den v {0} se počítač automaticky restartuje.",
+                IdleWarn = "Počítač se chvíli nepoužíval. Za {0} sekund se vypne – a vše se smaže." },
+        };
+        static readonly Dictionary<string, GuestLang> generic = new Dictionary<string, GuestLang>();
+
+        // de/it/en/es, Französisch, die vorbereiteten zusätzlichen Sprachen – sonst englische Texte mit dem Namen der Sprache
+        public static GuestLang Find(string code)
+        {
+            if (string.IsNullOrEmpty(code)) return null;
+            GuestLang l = All.FirstOrDefault(x => x.Code == code) ?? (code == "fr" ? Fr : Builtin.FirstOrDefault(x => x.Code == code));
+            if (l != null) return l;
+            lock (generic)
+            {
+                if (generic.TryGetValue(code, out l)) return l;
+                GuestLang en = All.First(x => x.Code == "en");
+                string name = code;
+                try { name = new System.Globalization.CultureInfo(code).NativeName; name = char.ToUpper(name[0]) + name.Substring(1); } catch { }
+                l = new GuestLang { Code = code, Name = name, Welcome = en.Welcome, Note = en.Note, StillThere = en.StillThere, StillHere = en.StillHere,
+                    Contact = en.Contact, Reset = en.Reset, Idle = en.Idle, Restart = en.Restart, IdleWarn = en.IdleWarn,
+                    Choose = en.Choose, Other = en.Other, Wifi = en.Wifi, WifiPw = en.WifiPw };
+                generic[code] = l;
+                return l;
+            }
+        }
         public static IEnumerable<GuestLang> Extras { get { return Enumerable.Empty<GuestLang>(); } }
-        public static bool IsExtra(string code) { return false; }
+
+        // Zusätzliche Sprache („+“): gültige Windows-Sprache, die nicht schon fest dabei ist (de/it/en/es/fr)
+        public static bool IsExtra(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return false;
+            string two = WelcomeInfo.SlotOf(tag);
+            if (two.Length < 2 || GuestSwitch.Allowed.Contains(two)) return false;
+            try { new System.Globalization.CultureInfo(tag); return true; } catch { return false; }
+        }
 
         // Die angezeigten Sprachen: Deutsch, Italiano, English, Español
         public static List<GuestLang> Active(string lang4) { return All.ToList(); }
@@ -556,11 +624,15 @@ namespace GaesteSchutz
             { "en", new[] { "Choose your language", "Other language", "Wi-Fi", "Password" } },
             { "es", new[] { "Elige tu idioma", "Otro idioma", "Wi-Fi", "Contraseña" } },
             { "fr", new[] { "Choisis ta langue", "Autre langue", "Wi-Fi", "Mot de passe" } },
+            { "nl", new[] { "Kies je taal", "Andere taal", "Wifi", "Wachtwoord" } },
+            { "pl", new[] { "Wybierz język", "Inny język", "Wi-Fi", "Hasło" } },
+            { "pt", new[] { "Escolha o idioma", "Outro idioma", "Wi-Fi", "Palavra-passe" } },
+            { "cs", new[] { "Vyberte jazyk", "Jiný jazyk", "Wi-Fi", "Heslo" } },
         };
 
         static GuestTexts()
         {
-            foreach (GuestLang l in All.Concat(new[] { Fr }))
+            foreach (GuestLang l in All.Concat(new[] { Fr }).Concat(Builtin))
             {
                 string[] m;
                 if (!More.TryGetValue(l.Code, out m)) m = More["en"];

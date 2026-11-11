@@ -283,6 +283,7 @@ namespace GaesteSchutz
         public string Get(string key) { string v; return data.TryGetValue(key, out v) ? v : null; }
         public void Set(string key, string value) { data[key] = value; }
         public void Remove(string key) { data.Remove(key); }
+        public List<string> Keys { get { return data.Keys.ToList(); } }
 
         public bool IsInstalled { get { return Get("Installiert") == "1"; } }
         public bool Enabled { get { return Get("SchutzAn") == "1"; } }
@@ -2111,6 +2112,9 @@ namespace GaesteSchutz
         CheckBox chkWelcome2;
         TextBox txtWlan, txtWlanPw, txtCheckout, txtContact, txtText, txtExtraName, txtExtra;
         List<LangTab> langTabs = new List<LangTab>();
+        Panel welcomePanel;
+        Label lblEditLang;
+        readonly ToolTip langTip = new ToolTip();
         WelcomeInfo editInfo;                 // alle Texte aller Sprachen, während das Fenster offen ist
         string editSlot = "de";               // Sprache, deren Felder gerade zu sehen sind
         bool loadingWelcome;
@@ -2410,16 +2414,14 @@ namespace GaesteSchutz
             txtWlan = WelcomeRow(t, L.T("WLAN-Name:", "Nome Wi-Fi:", "Wi-Fi name:"), 68, editInfo.Wlan);
             txtWlanPw = WelcomeRow(t, L.T("WLAN-Kennwort:", "Password Wi-Fi:", "Wi-Fi password:"), 98, editInfo.WlanPw);
 
-            // Ab hier je Sprache: erst die Flagge antippen, dann die Felder in dieser Sprache ausfüllen
-            int tx = 32;
-            foreach (GuestLang gl in GuestTexts.Active(editInfo.Lang4).Concat(new[] { GuestTexts.Fr }))     // + Französisch
-            {
-                var tab = new LangTab(gl.Code, gl.Name) { Location = new Point(tx, 128), Size = new Size(89, 30) };
-                tab.Click += (s, e) => SelectEditLang(tab.LangTag);
-                langTabs.Add(tab);
-                t.Controls.Add(tab);
-                tx += 96;
-            }
+            // Ab hier je Sprache: erst die Flagge antippen, dann die Felder in dieser Sprache ausfüllen. „+“ = weitere Sprache
+            welcomePanel = t;
+            lblEditLang = Ui.MakeLabel("", 0, 133, 100, 22);
+            lblEditLang.Font = new Font("Segoe UI Semibold", 10f);
+            lblEditLang.ForeColor = Logo.Cyan;
+            lblEditLang.AutoEllipsis = true;
+            t.Controls.Add(lblEditLang);
+            BuildLangTabs();
             txtCheckout = WelcomeRow(t, "Check-out:", 164, "");
             txtContact = WelcomeRow(t, L.T("Kontakt:", "Contatto:", "Contact:"), 194, "");
             // Zusatzfeld: links die eigene Beschriftung, rechts der Inhalt
@@ -2433,12 +2435,14 @@ namespace GaesteSchutz
             txtText.Height = 54;
             btnPreview = Ui.MakeButton(L.T("Vorschau …", "Anteprima …", "Preview …"), 376, 34, 130, 28, false);
             // Vorschau: mit Sprachwahl so, wie der Gast es sieht – nur die gerade gewählte Sprache
-            btnPreview.Click += (s, e) => WelcomeForm.Preview(this, CurrentWelcome(), chkChoice.Checked ? editSlot : null);
+            // (Französisch und die zusätzliche Sprache gibt es nur so – die immer einzeln zeigen)
+            btnPreview.Click += (s, e) => WelcomeForm.Preview(this, CurrentWelcome(),
+                chkChoice.Checked || GuestTexts.All.All(l => l.Code != editSlot) ? editSlot : null);
             t.Controls.Add(btnPreview);
             Indent(AddInfo(t, L.T(
-                "Es ist EIN Fenster: Flagge antippen und die Felder in dieser Sprache ausfüllen (✔ = ausgefüllt, leer = deutscher Text, bei Französisch englischer). Der Gast sieht DE/IT/EN/ES nebeneinander, mit Sprachwahl (Reiter „Sprache“) nur seine – Französisch nur so. Zusatzfeld: links Beschriftung, rechts Inhalt.",
-                "È UNA sola finestra: tocca una bandiera e compila i campi in quella lingua (✔ = compilata, vuoto = testo tedesco, per il francese quello inglese). L'ospite vede DE/IT/EN/ES affiancate, con la scelta della lingua (scheda «Lingua») solo la sua – il francese solo così. Campo extra: a sinistra l'etichetta, a destra il contenuto.",
-                "It is ONE window: tap a flag and fill in the fields in that language (✔ = filled in, empty = German text, for French the English one). The guest sees DE/IT/EN/ES side by side, with language choice (\"Language\" tab) only their own – French only that way. Extra field: label on the left, content on the right."),
+                "Es ist EIN Fenster: Flagge antippen und die Felder in dieser Sprache ausfüllen (✔ = ausgefüllt). „+“ fügt eine weitere installierte Sprache hinzu. Der Gast sieht DE/IT/EN/ES nebeneinander, mit Sprachwahl (Reiter „Sprache“) nur seine – Französisch und die weitere Sprache nur so. Leer = deutscher Text (FR/weitere: englischer).",
+                "È UNA sola finestra: tocca una bandiera e compila i campi in quella lingua (✔ = compilata). «+» aggiunge un'altra lingua installata. L'ospite vede DE/IT/EN/ES affiancate, con la scelta della lingua (scheda «Lingua») solo la sua – francese e lingua aggiunta solo così. Vuoto = testo tedesco (FR/aggiunta: inglese).",
+                "It is ONE window: tap a flag and fill in the fields in that language (✔ = filled in). “+” adds another installed language. The guest sees DE/IT/EN/ES side by side, with language choice (\"Language\" tab) only their own – French and the added language only that way. Empty = German text (FR/added: English)."),
                 316, 100), 32);
 
             LoadWelcomeFields();
@@ -2448,14 +2452,94 @@ namespace GaesteSchutz
             UpdateWelcomeEnabled();
         }
 
-        string CurrentLang4() { return ""; }
+        string CurrentLang4() { return editInfo.Lang4 ?? ""; }
+
+        // Flaggen-Reiter: DE IT EN ES FR, die zusätzliche Sprache (falls gewählt) und „+“; daneben der Name der Sprache
+        void BuildLangTabs()
+        {
+            foreach (LangTab old in langTabs) { welcomePanel.Controls.Remove(old); old.Dispose(); }
+            langTabs.Clear();
+            var tabs = new List<string[]>();          // Slot, Flagge, Name
+            foreach (GuestLang gl in GuestTexts.All.Concat(new[] { GuestTexts.Fr })) tabs.Add(new[] { gl.Code, gl.Code, gl.Name });
+            if (GuestTexts.IsExtra(editInfo.Lang4))
+            {
+                string slot = WelcomeInfo.SlotOf(editInfo.Lang4);
+                tabs.Add(new[] { slot, editInfo.Lang4, GuestTexts.Find(slot).Name });
+            }
+            tabs.Add(new[] { "+", "", L.T("Weitere Sprache hinzufügen / ändern …", "Aggiungi / cambia un'altra lingua …", "Add / change another language …") });
+            int tx = 32;
+            foreach (string[] d in tabs)
+            {
+                var tab = new LangTab(d[0], d[1], d[2]) { Location = new Point(tx, 128), Size = new Size(50, 30), Enabled = chkWelcome2 == null || chkWelcome2.Checked };
+                if (d[0] == "+") tab.Click += (s, e) => ChooseExtraLanguage();
+                else tab.Click += (s, e) => SelectEditLang(tab.Slot);
+                langTip.SetToolTip(tab, d[2]);
+                langTabs.Add(tab);
+                welcomePanel.Controls.Add(tab);
+                tx += 56;
+            }
+            lblEditLang.Location = new Point(tx + 4, 133);
+            lblEditLang.Width = Math.Max(40, 506 - tx - 4);
+        }
 
         // Flaggen-Reiter: Felder der bisherigen Sprache merken, die der gewählten Sprache zeigen
         void SelectEditLang(string slot)
         {
-            if (slot == editSlot || Array.IndexOf(WelcomeInfo.Slots, slot) < 0) return;
+            if (slot == editSlot || !editInfo.AllSlots.Contains(slot)) return;
             StoreWelcomeFields();
             editSlot = slot;
+            LoadWelcomeFields();
+        }
+
+        // „+“: eine weitere Sprache (installiertes Sprachpaket außer DE/IT/EN/ES/FR) wählen, ändern oder entfernen
+        void ChooseExtraLanguage()
+        {
+            StoreWelcomeFields();
+            List<string> tags = GuestExtras.InstalledUiLanguages().Where(GuestTexts.IsExtra).ToList();
+            if (Program.Demo && tags.Count == 0) tags.AddRange(new[] { "nl-NL", "pl-PL", "pt-PT" });
+            string cur = GuestTexts.IsExtra(editInfo.Lang4) ? editInfo.Lang4 : null;
+            if (cur != null && !tags.Contains(cur)) tags.Insert(0, cur);
+            if (tags.Count == 0)
+            {
+                MessageBox.Show(this, L.T(
+                    "Auf diesem PC ist außer Deutsch, Italienisch, Englisch, Spanisch und Französisch keine weitere Sprache installiert.\n\nSprachpaket hinzufügen (mit deinem Konto): Einstellungen → Zeit und Sprache → Sprache und Region → Sprache hinzufügen. Danach FreshGuest neu öffnen.",
+                    "Su questo PC, oltre a tedesco, italiano, inglese, spagnolo e francese, non è installata nessun'altra lingua.\n\nAggiungere un pacchetto di lingua (con il tuo account): Impostazioni → Data/ora e lingua → Lingua e area geografica → Aggiungi una lingua. Poi riaprire FreshGuest.",
+                    "Apart from German, Italian, English, Spanish and French, no other language is installed on this PC.\n\nAdd a language pack (with your account): Settings → Time & language → Language & region → Add a language. Then reopen FreshGuest."),
+                    L.AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            using (var f = new ExtraLangForm(tags, cur))
+            {
+                f.ShowDialog(this);
+                string result = f.Result;
+                bool remove = f.RemoveIt;
+
+                if (remove)
+                {
+                    string slot = WelcomeInfo.SlotOf(cur);
+                    if (WelcomeInfo.LangFields.Any(fl => editInfo.Raw(fl, slot).Length > 0) &&
+                        MessageBox.Show(this, string.Format(L.T("Die Texte in {0} werden gelöscht. Fortfahren?", "I testi in {0} verranno cancellati. Continuare?",
+                            "The texts in {0} will be deleted. Continue?"), GuestTexts.Find(slot).Name), L.AppName,
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+                    foreach (string fl in WelcomeInfo.LangFields) editInfo.Set(fl, slot, "");
+                    editInfo.Lang4 = "";
+                    if (editSlot == slot) editSlot = "de";
+                }
+                else if (result != null && result != cur)
+                {
+                    // Texte der bisherigen weiteren Sprache gehen an die neue (z. B. pt-PT -> pt-BR: gleiche Felder)
+                    if (cur != null)
+                    {
+                        string from = WelcomeInfo.SlotOf(cur), to = WelcomeInfo.SlotOf(result);
+                        if (from != to)
+                            foreach (string fl in WelcomeInfo.LangFields) { editInfo.Set(fl, to, editInfo.Raw(fl, from)); editInfo.Set(fl, from, ""); }
+                    }
+                    editInfo.Lang4 = result;
+                    editSlot = WelcomeInfo.SlotOf(result);
+                }
+                else return;
+            }
+            BuildLangTabs();
             LoadWelcomeFields();
         }
 
@@ -2465,9 +2549,11 @@ namespace GaesteSchutz
             if (!loadingWelcome) StoreWelcomeFields();
             foreach (LangTab tab in langTabs)
             {
-                tab.Selected = tab.LangTag == editSlot;
-                tab.Filled = WelcomeInfo.LangFields.Any(f => editInfo.Raw(f, tab.LangTag).Trim().Length > 0);
+                tab.Selected = tab.Slot == editSlot;
+                tab.Filled = tab.Slot != "+" && WelcomeInfo.LangFields.Any(f => editInfo.Raw(f, tab.Slot).Trim().Length > 0);
             }
+            GuestLang cur = GuestTexts.Find(editSlot);
+            if (lblEditLang != null) lblEditLang.Text = cur != null ? cur.Name : editSlot;
         }
 
         void StoreWelcomeFields()
@@ -2487,9 +2573,9 @@ namespace GaesteSchutz
             txtExtraName.Text = editInfo.Raw("ExtraName", editSlot);
             txtExtra.Text = editInfo.Raw("Extra", editSlot);
             txtText.Text = editInfo.Raw("Text", editSlot);
-            // Grauer Hinweis im leeren Feld: der Eintrag, der sonst gilt (Deutsch; bei Französisch erst Englisch)
+            // Grauer Hinweis im leeren Feld: der Eintrag, der sonst gilt (Deutsch; bei Französisch/weiterer Sprache erst Englisch)
             bool de = editSlot == "de";
-            string fb = editSlot == "fr" ? "en" : "de";
+            string fb = editSlot == "it" || editSlot == "es" || editSlot == "en" ? "de" : "en";
             Cue(txtCheckout, de ? "" : editInfo.Get("Checkout", fb));
             Cue(txtContact, de ? "" : editInfo.Get("Kontakt", fb));
             Cue(txtExtra, de ? "" : editInfo.Get("Extra", fb));
@@ -2616,9 +2702,9 @@ namespace GaesteSchutz
             chkChoice = AddCheck(t, L.T("Gäste dürfen die Windows-Sprache selbst wählen", "Gli ospiti possono scegliere la lingua di Windows",
                 "Guests may choose the Windows language themselves"), 322, GuestExtras.ChoiceOn(store));
             Indent(AddInfo(t, L.T(
-                "Beim Anmelden sieht der Gast zuerst nur die Flaggen (Deutsch, Italienisch, Englisch, Spanisch; Französisch, wenn installiert). Wählt er eine andere Sprache, meldet sich der PC kurz ab und wieder an – dann kommt das Willkommen nur in seiner Sprache. Der nächste Gast bekommt wieder die Standardsprache.",
-                "All'accesso l'ospite vede prima solo le bandiere (tedesco, italiano, inglese, spagnolo; francese, se installato). Se sceglie un'altra lingua, il PC si disconnette per un attimo e si riconnette – poi il benvenuto appare solo nella sua lingua. L'ospite successivo riceve di nuovo la lingua predefinita.",
-                "At sign-in the guest first sees only the flags (German, Italian, English, Spanish; French if installed). If they choose another language, the PC signs out briefly and back in – then the welcome appears in their language only. The next guest gets the default language again."),
+                "Beim Anmelden sieht der Gast zuerst nur die Flaggen (DE, IT, EN, ES; Französisch und die weitere Sprache aus „Willkommen“, wenn installiert). Wählt er eine andere Sprache, meldet sich der PC kurz ab und wieder an – dann kommt das Willkommen nur in seiner Sprache. Der nächste Gast bekommt wieder die Standardsprache.",
+                "All'accesso l'ospite vede prima solo le bandiere (DE, IT, EN, ES; francese e la lingua aggiunta in «Benvenuto», se installati). Se sceglie un'altra lingua, il PC si disconnette per un attimo e si riconnette – poi il benvenuto appare solo nella sua lingua. L'ospite successivo riceve di nuovo la lingua predefinita.",
+                "At sign-in the guest first sees only the flags (DE, IT, EN, ES; French and the added language from “Welcome”, if installed). If they choose another language, the PC signs out briefly and back in – then the welcome appears in their language only. The next guest gets the default language again."),
                 350, 80), 32);
         }
 
@@ -3330,7 +3416,7 @@ namespace GaesteSchutz
                 st.Set("W_Extra", "Nr. 12 im Hof"); st.Set("W_Extra_it", "n. 12 nel cortile"); st.Set("W_Extra_en", "No. 12 in the yard");
                 st.Set("W_Text", "Schönen Urlaub in Südtirol!"); st.Set("W_Text_it", "Buone vacanze in Alto Adige!"); st.Set("W_Text_en", "Enjoy your holiday in South Tyrol!");
                 st.Set("W_Checkout_es", "10:00 h"); st.Set("W_ExtraName_es", "Aparcamiento"); st.Set("W_Extra_es", "n.º 12 en el patio"); st.Set("W_Text_es", "¡Felices vacaciones en el Tirol del Sur!");
-                st.Set("W_Checkout_fr", "10h00"); st.Set("W_ExtraName_fr", "Parking"); st.Set("W_Extra_fr", "n° 12 dans la cour"); st.Set("W_Text_fr", "Bonnes vacances au Tyrol du Sud !");
+                st.Set("W_Checkout_fr", "10h00"); st.Set("W_ExtraName_fr", "Parking"); st.Set("W_Extra_fr", "n° 12 dans la cour"); st.Set("W_Text_fr", "Bonnes vacances au Tyrol du Sud !"); st.Set("Sprache4", "nl-NL"); st.Set("W_Checkout_nl", "10.00 uur"); st.Set("W_Text_nl", "Fijne vakantie in Zuid-Tirol!");
                 st.Set("AbmeldenMin", "60");
                 st.Set("NeustartZeit", "04:00");
                 st.Set("Sperren", "1");
@@ -3355,6 +3441,11 @@ namespace GaesteSchutz
                     Path.Combine(dir, "20-gast-willkommen-eine-sprache" + sfx + ".png"));
                 if (code == "en")       // nur zur Kontrolle (nicht in der Anleitung): Französisch nach der Sprachwahl
                     Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false, "fr"), Path.Combine(dir, "21-gast-willkommen-fr.png"));
+                if (code == "en")
+                {
+                    Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false, "nl"), Path.Combine(dir, "22-gast-willkommen-nl.png"));
+                    Shot(new ExtraLangForm(new List<string> { "nl-NL", "pl-PL" }, "nl-NL"), Path.Combine(dir, "23-weitere-sprache.png"));
+                }
 
                 if (code == "de")
                 {
