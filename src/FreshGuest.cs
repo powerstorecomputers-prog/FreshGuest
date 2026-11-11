@@ -2412,13 +2412,13 @@ namespace GaesteSchutz
 
             // Ab hier je Sprache: erst die Flagge antippen, dann die Felder in dieser Sprache ausfüllen
             int tx = 32;
-            foreach (GuestLang gl in GuestTexts.Active(editInfo.Lang4))
+            foreach (GuestLang gl in GuestTexts.Active(editInfo.Lang4).Concat(new[] { GuestTexts.Fr }))     // + Französisch
             {
-                var tab = new LangTab(gl.Code, gl.Name) { Location = new Point(tx, 128), Size = new Size(113, 30) };
+                var tab = new LangTab(gl.Code, gl.Name) { Location = new Point(tx, 128), Size = new Size(89, 30) };
                 tab.Click += (s, e) => SelectEditLang(tab.LangTag);
                 langTabs.Add(tab);
                 t.Controls.Add(tab);
-                tx += 120;
+                tx += 96;
             }
             txtCheckout = WelcomeRow(t, "Check-out:", 164, "");
             txtContact = WelcomeRow(t, L.T("Kontakt:", "Contatto:", "Contact:"), 194, "");
@@ -2436,9 +2436,9 @@ namespace GaesteSchutz
             btnPreview.Click += (s, e) => WelcomeForm.Preview(this, CurrentWelcome(), chkChoice.Checked ? editSlot : null);
             t.Controls.Add(btnPreview);
             Indent(AddInfo(t, L.T(
-                "Es ist EIN Fenster: Flagge antippen und die Felder in dieser Sprache ausfüllen (✔ = ausgefüllt, leer = deutscher Text). Der Gast sieht alle vier Sprachen nebeneinander, mit Sprachwahl (Reiter „Sprache“) nur seine. Zusatzfeld: links Beschriftung, rechts Inhalt.",
-                "È UNA sola finestra: tocca una bandiera e compila i campi in quella lingua (✔ = compilata, vuoto = testo tedesco). L'ospite vede tutte e quattro le lingue affiancate, con la scelta della lingua (scheda «Lingua») solo la sua. Campo extra: a sinistra l'etichetta, a destra il contenuto.",
-                "It is ONE window: tap a flag and fill in the fields in that language (✔ = filled in, empty = German text). The guest sees all four languages side by side, with language choice (\"Language\" tab) only their own. Extra field: label on the left, content on the right."),
+                "Es ist EIN Fenster: Flagge antippen und die Felder in dieser Sprache ausfüllen (✔ = ausgefüllt, leer = deutscher Text, bei Französisch englischer). Der Gast sieht DE/IT/EN/ES nebeneinander, mit Sprachwahl (Reiter „Sprache“) nur seine – Französisch nur so. Zusatzfeld: links Beschriftung, rechts Inhalt.",
+                "È UNA sola finestra: tocca una bandiera e compila i campi in quella lingua (✔ = compilata, vuoto = testo tedesco, per il francese quello inglese). L'ospite vede DE/IT/EN/ES affiancate, con la scelta della lingua (scheda «Lingua») solo la sua – il francese solo così. Campo extra: a sinistra l'etichetta, a destra il contenuto.",
+                "It is ONE window: tap a flag and fill in the fields in that language (✔ = filled in, empty = German text, for French the English one). The guest sees DE/IT/EN/ES side by side, with language choice (\"Language\" tab) only their own – French only that way. Extra field: label on the left, content on the right."),
                 316, 100), 32);
 
             LoadWelcomeFields();
@@ -2487,13 +2487,14 @@ namespace GaesteSchutz
             txtExtraName.Text = editInfo.Raw("ExtraName", editSlot);
             txtExtra.Text = editInfo.Raw("Extra", editSlot);
             txtText.Text = editInfo.Raw("Text", editSlot);
-            // Grauer Hinweis im leeren Feld: in anderen Sprachen der deutsche Eintrag, der sonst gilt
+            // Grauer Hinweis im leeren Feld: der Eintrag, der sonst gilt (Deutsch; bei Französisch erst Englisch)
             bool de = editSlot == "de";
-            Cue(txtCheckout, de ? "" : editInfo.Raw("Checkout", "de"));
-            Cue(txtContact, de ? "" : editInfo.Raw("Kontakt", "de"));
-            Cue(txtExtra, de ? "" : editInfo.Raw("Extra", "de"));
-            Cue(txtExtraName, de || editInfo.Raw("ExtraName", "de").Length == 0
-                ? L.T("Zusatzfeld, z. B. Parkplatz", "Campo extra, ad es. Parcheggio", "Extra field, e.g. Parking") : editInfo.Raw("ExtraName", "de"));
+            string fb = editSlot == "fr" ? "en" : "de";
+            Cue(txtCheckout, de ? "" : editInfo.Get("Checkout", fb));
+            Cue(txtContact, de ? "" : editInfo.Get("Kontakt", fb));
+            Cue(txtExtra, de ? "" : editInfo.Get("Extra", fb));
+            Cue(txtExtraName, de || editInfo.Get("ExtraName", fb).Length == 0
+                ? L.T("Zusatzfeld, z. B. Parkplatz", "Campo extra, ad es. Parcheggio", "Extra field, e.g. Parking") : editInfo.Get("ExtraName", fb));
             loadingWelcome = false;
             MarkFilledTabs();
         }
@@ -3329,6 +3330,7 @@ namespace GaesteSchutz
                 st.Set("W_Extra", "Nr. 12 im Hof"); st.Set("W_Extra_it", "n. 12 nel cortile"); st.Set("W_Extra_en", "No. 12 in the yard");
                 st.Set("W_Text", "Schönen Urlaub in Südtirol!"); st.Set("W_Text_it", "Buone vacanze in Alto Adige!"); st.Set("W_Text_en", "Enjoy your holiday in South Tyrol!");
                 st.Set("W_Checkout_es", "10:00 h"); st.Set("W_ExtraName_es", "Aparcamiento"); st.Set("W_Extra_es", "n.º 12 en el patio"); st.Set("W_Text_es", "¡Felices vacaciones en el Tirol del Sur!");
+                st.Set("W_Checkout_fr", "10h00"); st.Set("W_ExtraName_fr", "Parking"); st.Set("W_Extra_fr", "n° 12 dans la cour"); st.Set("W_Text_fr", "Bonnes vacances au Tyrol du Sud !");
                 st.Set("AbmeldenMin", "60");
                 st.Set("NeustartZeit", "04:00");
                 st.Set("Sperren", "1");

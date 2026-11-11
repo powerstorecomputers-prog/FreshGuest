@@ -432,7 +432,7 @@ namespace GaesteSchutz
         {
             LangTag = tag;
             Text = name;
-            Font = new Font("Segoe UI Semibold", 9f);
+            Font = new Font("Segoe UI Semibold", 8.5f);
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         }
@@ -448,23 +448,27 @@ namespace GaesteSchutz
             g.Clear(Parent != null ? Parent.BackColor : Ui.Surface);
             var r = new Rectangle(0, 0, Width - 1, Height - 1);
             using (var br = new SolidBrush(selected ? Ui.Blue : hot && Enabled ? Ui.FieldHover : Ui.Field)) g.FillRectangle(br, r);
-            int pad = (int)(6 * k);
+            int pad = (int)(5 * k);
             int fh = Height - 2 * (int)(8 * k), fw = fh * 3 / 2;
             var fr = new Rectangle(pad, (Height - fh) / 2, fw, fh);
             Flags.Draw(g, fr, LangTag);
             using (var pen = new Pen(Color.FromArgb(120, 0, 0, 0))) g.DrawRectangle(pen, fr);
             if (!Enabled)
                 using (var br = new SolidBrush(Color.FromArgb(150, Ui.Field))) g.FillRectangle(br, fr);
-            // Name, dahinter grünes ✔, wenn in dieser Sprache schon etwas steht
-            int check = filled ? TextRenderer.MeasureText(g, "✔", Font).Width : 0;
-            var tr = Rectangle.FromLTRB(fr.Right + pad, 0, Width - pad - check, Height);
-            var flags = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
-            TextRenderer.DrawText(g, Text, Font, tr, Enabled ? Color.White : Ui.Disabled, flags);
+            var tr = Rectangle.FromLTRB(fr.Right + pad + (int)(2 * k), 0, Width - (int)(3 * k), Height);
+            TextRenderer.DrawText(g, Text, Font, tr, Enabled ? Color.White : Ui.Disabled,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+            // Grünes ✔ unten rechts an der Flagge, wenn in dieser Sprache schon etwas steht
             if (filled)
             {
-                int tw = Math.Min(TextRenderer.MeasureText(g, Text, Font, tr.Size, flags).Width, tr.Width);
-                TextRenderer.DrawText(g, "✔", Font, new Rectangle(tr.X + tw + (int)(3 * k), 0, check, Height),
-                    Enabled ? Ui.OkText : Ui.Disabled, flags & ~TextFormatFlags.EndEllipsis);
+                int d = (int)(12 * k);
+                var c = new Rectangle(fr.Right - d + (int)(2 * k), fr.Bottom - d + (int)(3 * k), d, d);
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var br = new SolidBrush(Enabled ? Color.FromArgb(27, 160, 80) : Ui.Disabled)) g.FillEllipse(br, c);
+                using (var pen = new Pen(Color.White, 1.6f * k))
+                    g.DrawLines(pen, new[] { new PointF(c.X + d * 0.25f, c.Y + d * 0.52f), new PointF(c.X + d * 0.43f, c.Y + d * 0.70f),
+                                             new PointF(c.X + d * 0.76f, c.Y + d * 0.32f) });
+                g.SmoothingMode = SmoothingMode.None;
             }
             using (var pen = new Pen(selected && Enabled ? Logo.Cyan : Ui.Border, selected ? 2f * k : 1f))
                 g.DrawRectangle(pen, selected ? Rectangle.Inflate(r, -(int)k, -(int)k) : r);

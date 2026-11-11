@@ -45,7 +45,8 @@ namespace GaesteSchutz
         // Felder je Sprache. "de" ist die Grundlage: Bleibt ein Feld in einer anderen Sprache leer, gilt der deutsche Eintrag.
         // ExtraName/Extra = frei benennbares Zusatzfeld (z. B. „Parkplatz“).
         public static readonly string[] LangFields = { "Checkout", "Kontakt", "Text", "ExtraName", "Extra" };
-        public static readonly string[] Slots = { "de", "it", "en", "es" };
+        // "fr" = Französisch: eigene Felder (Reiter „Français“), gezeigt nur französischen Gästen nach der Sprachwahl
+        public static readonly string[] Slots = { "de", "it", "en", "es", "fr" };
         readonly Dictionary<string, string> vals = new Dictionary<string, string>();
 
         public string Raw(string field, string slot) { string v; return vals.TryGetValue(field + "|" + slot, out v) ? v : ""; }
@@ -54,11 +55,11 @@ namespace GaesteSchutz
             value = (value ?? "").Trim();
             if (value.Length == 0) vals.Remove(field + "|" + slot); else vals[field + "|" + slot] = value;
         }
-        // Französisch (nur als Gast-Sprache, ohne eigene Felder): erst der englische, dann der deutsche Eintrag
+        // Französisch leer: erst der englische, dann der deutsche Eintrag
         public string Get(string field, string slot)
         {
             string v = Raw(field, slot);
-            if (v.Length == 0 && Array.IndexOf(Slots, slot) < 0) v = Raw(field, "en");
+            if (v.Length == 0 && slot == "fr") v = Raw(field, "en");
             return v.Length > 0 ? v : Raw(field, "de");
         }
 
