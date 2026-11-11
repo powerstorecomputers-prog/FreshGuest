@@ -84,11 +84,8 @@ namespace GaesteSchutz
         // Verknüpfung im Autostart-Ordner nur, wenn mindestens eine Gast-Funktion an ist
         static void UpdateStartupLink()
         {
-            bool need;
-            using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey))
-                need = k != null && (!string.IsNullOrEmpty(Convert.ToString(k.GetValue("GastAutostart", ""))) ||
-                                     ConfigInt(k, "GastWillkommen") == 1 || ConfigInt(k, "GastAbmeldenMin") > 0 ||
-                                     ConfigInt(k, "GastProfilbild") == 1 || ConfigInt(k, "GastHinweis") == 1 || ConfigInt(k, "GastSprachwahl") == 1);
+            bool need = StartLinkNeeded();
+            SyncFastStart(need);
             if (need) Sys.CreateShortcut(StartupLnk, Sys.InstalledExe, "--gast-start");
             else
             {
@@ -102,6 +99,71 @@ namespace GaesteSchutz
                 }
                 catch { }
             }
+        }
+
+        // Gast-Fenster (Flaggen, Willkommen) sollen gleich nach dem Anmelden kommen:
+        // - Windows startet den Autostart-Ordner sonst erst mit Verzögerung (Explorer\Serialize: StartupDelayInMSec,
+        //   WaitForIdleState) – steht nur im Standardprofil, gilt also nur für Gäste.
+        // - Die Animation bei der ersten Anmeldung („Hallo“ … „Wir bereiten alles vor“) fällt weg. Jeder Gast meldet
+        //   sich zum ersten Mal an, mit Sprachwahl sogar zweimal. Nur gesetzt, wenn der Wert noch nicht da war.
+        const string SerializeKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize";
+        const string SystemPolicy = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+
+        public static void SyncFastStart(bool on)
+        {
+            bool have;
+            using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey)) have = ConfigInt(k, "SchnellStart") == 1;
+            if (on == have || Program.Demo) return;
+            try
+            {
+                WithDefaultHive(root =>
+                {
+                    if (on)
+                        using (RegistryKey k = root.CreateSubKey(SerializeKey))
+                        {
+                            k.SetValue("StartupDelayInMSec", 0, RegistryValueKind.DWord);
+                            k.SetValue("WaitForIdleState", 0, RegistryValueKind.DWord);
+                        }
+                    else
+                        using (RegistryKey k = root.OpenSubKey(SerializeKey, true))
+                            if (k != null) { k.DeleteValue("StartupDelayInMSec", false); k.DeleteValue("WaitForIdleState", false); }
+                });
+                using (RegistryKey p = Registry.LocalMachine.CreateSubKey(SystemPolicy))
+                using (RegistryKey c = Registry.LocalMachine.CreateSubKey(ConfigKey))
+                {
+                    if (on)
+                    {
+                        if (p.GetValue("EnableFirstLogonAnimation") == null)
+                        {
+                            p.SetValue("EnableFirstLogonAnimation", 0, RegistryValueKind.DWord);
+                            c.SetValue("SchnellStartAnimation", "1", RegistryValueKind.String);
+                        }
+                        c.SetValue("SchnellStart", "1", RegistryValueKind.String);
+                    }
+                    else
+                    {
+                        if (ConfigInt(c, "SchnellStartAnimation") == 1) p.DeleteValue("EnableFirstLogonAnimation", false);
+                        c.DeleteValue("SchnellStartAnimation", false);
+                        c.DeleteValue("SchnellStart", false);
+                    }
+                }
+                if (!on)
+                {
+                    bool empty;
+                    using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey))
+                        empty = k != null && k.ValueCount == 0 && k.SubKeyCount == 0;
+                    if (empty) Registry.LocalMachine.DeleteSubKey(ConfigKey, false);
+                }
+            }
+            catch { }
+        }
+
+        public static bool StartLinkNeeded()
+        {
+            using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey))
+                return k != null && (!string.IsNullOrEmpty(Convert.ToString(k.GetValue("GastAutostart", ""))) ||
+                                     ConfigInt(k, "GastWillkommen") == 1 || ConfigInt(k, "GastAbmeldenMin") > 0 ||
+                                     ConfigInt(k, "GastProfilbild") == 1 || ConfigInt(k, "GastHinweis") == 1 || ConfigInt(k, "GastSprachwahl") == 1);
         }
 
         // ======================================================================
@@ -122,7 +184,7 @@ namespace GaesteSchutz
         }
 
         // Ziel einer Verknüpfung (oder null)
-        static string ShortcutTarget(string lnk)
+        internal static string ShortcutTarget(string lnk)
         {
             try
             {
@@ -651,9 +713,9 @@ namespace GaesteSchutz
         readonly string only;
         readonly int W, cols;
 
-        public static void Preview(IWin32Window owner, WelcomeInfo info)
+        public static void Preview(IWin32Window owner, WelcomeInfo info, string only = null)
         {
-            using (var f = new WelcomeForm(info, true, null)) f.ShowDialog(owner);
+            using (var f = new WelcomeForm(info, true, only)) f.ShowDialog(owner);
         }
 
         public WelcomeForm(WelcomeInfo info, bool preview, string only = null)
@@ -1123,6 +1185,7 @@ namespace GaesteSchutz
             if (ChoiceOn(store)) step("Sprachwahl", () => ApplyGuestChoice(store, false, log));
             if (GuestLanguage(store) != null || store.Get("GastSpr_Tag") != null) step("Sprache", () => ApplyGuestLanguage(store, null, log));
             if (GuestOnlyTile()) step("Anmeldung", () => ApplyGuestOnlyTile(false, log));
+            step("Schnellstart", () => SyncFastStart(false));
         }
 
         // ======================================================================

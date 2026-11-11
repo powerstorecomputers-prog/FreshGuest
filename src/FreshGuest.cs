@@ -41,8 +41,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("PC für Feriengäste: Gast-Daten werden beim Neustart gelöscht")]
 [assembly: AssemblyCompany("PowerStore Computers")]
 [assembly: AssemblyCopyright("© 2026 PowerStore Computers")]
-[assembly: AssemblyVersion("1.25.0.0")]
-[assembly: AssemblyFileVersion("1.25.0.0")]
+[assembly: AssemblyVersion("1.26.0.0")]
+[assembly: AssemblyFileVersion("1.26.0.0")]
 
 namespace GaesteSchutz
 {
@@ -73,7 +73,7 @@ namespace GaesteSchutz
     static class Program
     {
         public const string Name = "FreshGuest";
-        public const string Version = "1.25";
+        public const string Version = "1.26";
         public const string Copyright = "© 2026 PowerStore Computers";
         public static bool Demo;
         public static bool CleanShots;   // Bilder für die Anleitung: ohne DEMO-Hinweise
@@ -711,6 +711,7 @@ namespace GaesteSchutz
                     else k.DeleteValue("GastStandardSprache", false);
             }
             catch { }
+            try { GuestExtras.SyncFastStart(GuestExtras.StartLinkNeeded()); } catch { }        // ab 1.26: Gast-Fenster ohne Startverzögerung
             foreach (string task in new[] { "FreshGuest-Profilbild", "FreshGuest-Neustart" }) TaskRunOnBattery(task);       // ab 1.19: auch im Akkubetrieb
             // Anmeldebildschirm: Aufgabe (neu) anlegen – ab 1.17 wird „Guest“ automatisch ausgewählt
             try { SignIn.Sync(store, l => log.AppendLine(l)); } catch (Exception ex) { log.AppendLine("Anmeldung: " + ex.Message); }
@@ -909,18 +910,20 @@ namespace GaesteSchutz
         }
 
         // Symbole auf dem öffentlichen Desktop (sieht jeder Gast). Edge/Chrome öffnen damit die Startseite.
-        static void MakeShortcuts(BrowserOpt o, string url, Action<string> log)
+        // Gibt die Programme zurück, für die ein Symbol angelegt wurde (für HidePublicDuplicates)
+        static List<string> MakeShortcuts(BrowserOpt o, string url, Action<string> log)
         {
+            var exes = new List<string>();
             bool all = (o & BrowserOpt.Shortcuts) != 0;
             string arg = (o & BrowserOpt.StartPage) != 0 && url != null ? "\"" + url + "\"" : null;
-            if (!all && arg == null) return;
+            if (!all && arg == null) return exes;
             var made = new List<string>();
             var missing = new List<string>();
             Action<string, string, string, bool> one = (name, exe, lnk, withArg) =>
             {
                 if (exe == null) { missing.Add(name); return; }
                 if (Program.Demo) { made.Add(name); return; }
-                try { Directory.CreateDirectory(GuestDesktop); Sys.CreateShortcut(lnk, exe, withArg ? arg : null); made.Add(name); }
+                try { Directory.CreateDirectory(GuestDesktop); Sys.CreateShortcut(lnk, exe, withArg ? arg : null); made.Add(name); exes.Add(exe); }
                 catch (Exception ex) { log("  " + name + ": " + ex.Message); }
             };
             one("Edge", EdgeExe, EdgeLnk, true);
@@ -938,6 +941,101 @@ namespace GaesteSchutz
                 else if (all || n != "Edge")
                     log("  " + n + L.T(" nicht installiert – kein Symbol.", " non installato – nessuna icona.", " not installed – no icon."));
             }
+            return exes;
+        }
+
+        // Chrome und Edge legen bei der Installation eigene Symbole auf den öffentlichen Desktop („Google Chrome“,
+        // „Microsoft Edge“). Die sieht jeder Gast – zusammen mit „Internet (…)“ wäre jeder Browser doppelt da.
+        // Deshalb kommen sie in eine Sicherung; dein eigenes Konto bekommt eine Kopie auf seinen Desktop.
+        // Beim Abschalten der Browser-Einstellungen bzw. Deinstallieren kommt alles zurück.
+        static string PublicBackup { get { return Path.Combine(Sys.DataDir, "Desktop-Sicherung"); } }
+        const string EdgeUpdatePolicy = @"SOFTWARE\Policies\Microsoft\EdgeUpdate";
+
+        static List<string> Names(Store store, string key)
+        {
+            return (store.Get(key) ?? "").Split('|').Where(n => n.Length > 0).ToList();
+        }
+
+        static void HidePublicDuplicates(Store store, List<string> exes, Action<string> log)
+        {
+            if (exes.Count == 0 || !Directory.Exists(PublicDesktop)) return;
+            var moved = Names(store, "SymboleVerschoben");
+            var copied = Names(store, "SymboleKopiert");
+            string mine = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            var hidden = new List<string>();
+            bool edge = false;
+            foreach (string lnk in Directory.GetFiles(PublicDesktop, "*.lnk"))
+            {
+                string target = GuestExtras.ShortcutTarget(lnk);
+                if (string.IsNullOrEmpty(target)) continue;
+                string exe = exes.FirstOrDefault(x => string.Equals(Path.GetFileName(x), Path.GetFileName(target), StringComparison.OrdinalIgnoreCase));
+                if (exe == null) continue;
+                string name = Path.GetFileName(lnk);
+                try
+                {
+                    Directory.CreateDirectory(PublicBackup);
+                    if (mine.Length > 0 && !File.Exists(Path.Combine(mine, name)))
+                    {
+                        File.Copy(lnk, Path.Combine(mine, name));
+                        if (!copied.Contains(name)) copied.Add(name);
+                    }
+                    File.Copy(lnk, Path.Combine(PublicBackup, name), true);
+                    File.Delete(lnk);
+                    if (!moved.Contains(name)) moved.Add(name);
+                    hidden.Add(Path.GetFileNameWithoutExtension(name));
+                    if (exe == EdgeExe) edge = true;
+                }
+                catch (Exception ex) { log("  " + name + ": " + ex.Message); }
+            }
+            // Edge-Updates legen das Symbol sonst wieder auf den öffentlichen Desktop
+            if (edge && store.Get("EdgeUpdateSymbol") == null)
+                try
+                {
+                    using (RegistryKey k = Registry.LocalMachine.CreateSubKey(EdgeUpdatePolicy))
+                        if (k.GetValue("CreateDesktopShortcutDefault") == null)
+                        {
+                            k.SetValue("CreateDesktopShortcutDefault", 0, RegistryValueKind.DWord);
+                            store.Set("EdgeUpdateSymbol", "1");
+                        }
+                }
+                catch { }
+            store.Set("SymboleVerschoben", string.Join("|", moved.ToArray()));
+            store.Set("SymboleKopiert", string.Join("|", copied.ToArray()));
+            if (hidden.Count > 0)
+                log(L.T("✔ Doppelte Symbole vom gemeinsamen Desktop genommen (dein Konto behält sie): ",
+                        "✔ Icone doppie tolte dal desktop comune (il tuo account le mantiene): ",
+                        "✔ Duplicate icons removed from the shared desktop (your account keeps them): ") + string.Join(", ", hidden.ToArray()));
+        }
+
+        static void RestorePublicDuplicates(Store store)
+        {
+            string mine = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            foreach (string name in Names(store, "SymboleVerschoben"))
+                try
+                {
+                    string bak = Path.Combine(PublicBackup, name), pub = Path.Combine(PublicDesktop, name);
+                    if (!File.Exists(bak)) continue;
+                    if (!File.Exists(pub)) File.Copy(bak, pub);
+                    File.Delete(bak);
+                }
+                catch { }
+            foreach (string name in Names(store, "SymboleKopiert"))     // unsere Kopie auf deinem Desktop – sonst wieder doppelt
+                try
+                {
+                    string own = Path.Combine(mine, name);
+                    if (mine.Length > 0 && File.Exists(own) && File.Exists(Path.Combine(PublicDesktop, name))) File.Delete(own);
+                }
+                catch { }
+            try { if (Directory.Exists(PublicBackup) && !Directory.EnumerateFileSystemEntries(PublicBackup).Any()) Directory.Delete(PublicBackup); } catch { }
+            if (store.Get("EdgeUpdateSymbol") != null)
+                try
+                {
+                    using (RegistryKey k = Registry.LocalMachine.OpenSubKey(EdgeUpdatePolicy, true))
+                        if (k != null) k.DeleteValue("CreateDesktopShortcutDefault", false);
+                    DeleteIfEmpty(Registry.LocalMachine, EdgeUpdatePolicy);
+                }
+                catch { }
+            foreach (string key in new[] { "SymboleVerschoben", "SymboleKopiert", "EdgeUpdateSymbol" }) store.Remove(key);
         }
 
         // "www.google.it" -> "https://www.google.it/"; ungültig -> null
@@ -988,7 +1086,12 @@ namespace GaesteSchutz
                             k.SetValue(v.Name, v.Data, v.Kind);
                 });
             }
-            MakeShortcuts(o, url, log);
+            List<string> exes = MakeShortcuts(o, url, log);
+            if (!Program.Demo)
+            {
+                RestorePublicDuplicates(store);
+                HidePublicDuplicates(store, exes, log);
+            }
             if ((o & BrowserOpt.NoWelcome) != 0) log(L.T("✔ Kein Willkommensassistent", "✔ Nessuna procedura di benvenuto", "✔ No welcome wizard"));
             if ((o & BrowserOpt.NoPasswords) != 0) log(L.T("✔ Kennwörter werden nicht gespeichert", "✔ Le password non vengono salvate", "✔ Passwords are not saved"));
             if ((o & BrowserOpt.NoDefaultPrompt) != 0) log(L.T("✔ Keine Standardbrowser-Frage", "✔ Nessuna richiesta browser predefinito", "✔ No default-browser prompt"));
@@ -1013,6 +1116,7 @@ namespace GaesteSchutz
                 ClearMachine();
                 ClearShortcuts();
                 GuestExtras.WithDefaultHive(ClearHive);
+                RestorePublicDuplicates(store);
             }
             store.Set("BrowserAktiv", "0");
             if (log != null) log(L.T("Browser-Einstellungen für Gäste entfernt.", "Impostazioni browser per gli ospiti rimosse.",
@@ -2006,7 +2110,7 @@ namespace GaesteSchutz
         // Willkommen
         CheckBox chkWelcome2;
         TextBox txtWlan, txtWlanPw, txtCheckout, txtContact, txtText, txtExtraName, txtExtra;
-        ComboBox cbEditLang;
+        List<LangTab> langTabs = new List<LangTab>();
         WelcomeInfo editInfo;                 // alle Texte aller Sprachen, während das Fenster offen ist
         string editSlot = "de";               // Sprache, deren Felder gerade zu sehen sind
         bool loadingWelcome;
@@ -2297,19 +2401,25 @@ namespace GaesteSchutz
         // ---------- Willkommen ----------
         void BuildWelcome(Panel t)
         {
-            AddInfo(t, L.T("Fenster für jeden Gast nach dem Anmelden – in allen Sprachen.",
-                "Finestra per ogni ospite dopo l'accesso – in tutte le lingue.",
-                "Window for every guest after sign-in – in all languages."), 12, 22);
+            AddInfo(t, L.T("Ein Fenster für jeden Gast nach dem Anmelden.",
+                "Una finestra per ogni ospite dopo l'accesso.",
+                "One window for every guest after sign-in."), 12, 22);
             editInfo = GuestExtras.WelcomeFromStore(store);
             chkWelcome2 = AddCheck(t, L.T("Willkommensfenster beim Anmelden zeigen", "Mostra la finestra di benvenuto all'accesso",
                 "Show welcome window at sign-in"), 38, GuestExtras.WelcomeOn(store));
             txtWlan = WelcomeRow(t, L.T("WLAN-Name:", "Nome Wi-Fi:", "Wi-Fi name:"), 68, editInfo.Wlan);
             txtWlanPw = WelcomeRow(t, L.T("WLAN-Kennwort:", "Password Wi-Fi:", "Wi-Fi password:"), 98, editInfo.WlanPw);
 
-            // Ab hier je Sprache: erst die Sprache wählen, dann die Felder ausfüllen
-            t.Controls.Add(Ui.MakeLabel(L.T("Texte in Sprache:", "Testi in lingua:", "Texts in language:"), 32, 135, 150, 22));
-            cbEditLang = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(186, 132), Width = 180 };
-            t.Controls.Add(cbEditLang);
+            // Ab hier je Sprache: erst die Flagge antippen, dann die Felder in dieser Sprache ausfüllen
+            int tx = 32;
+            foreach (GuestLang gl in GuestTexts.Active(editInfo.Lang4))
+            {
+                var tab = new LangTab(gl.Code, gl.Name) { Location = new Point(tx, 128), Size = new Size(113, 30) };
+                tab.Click += (s, e) => SelectEditLang(tab.LangTag);
+                langTabs.Add(tab);
+                t.Controls.Add(tab);
+                tx += 120;
+            }
             txtCheckout = WelcomeRow(t, "Check-out:", 164, "");
             txtContact = WelcomeRow(t, L.T("Kontakt:", "Contatto:", "Contact:"), 194, "");
             // Zusatzfeld: links die eigene Beschriftung, rechts der Inhalt
@@ -2322,37 +2432,42 @@ namespace GaesteSchutz
             txtText.ScrollBars = ScrollBars.Vertical;
             txtText.Height = 54;
             btnPreview = Ui.MakeButton(L.T("Vorschau …", "Anteprima …", "Preview …"), 376, 34, 130, 28, false);
-            btnPreview.Click += (s, e) => WelcomeForm.Preview(this, CurrentWelcome());
+            // Vorschau: mit Sprachwahl so, wie der Gast es sieht – nur die gerade gewählte Sprache
+            btnPreview.Click += (s, e) => WelcomeForm.Preview(this, CurrentWelcome(), chkChoice.Checked ? editSlot : null);
             t.Controls.Add(btnPreview);
             Indent(AddInfo(t, L.T(
-                "Zusatzfeld: links Beschriftung (z. B. „Parkplatz“), rechts Inhalt. Leer in einer Sprache = es gilt der deutsche Eintrag. Sprachen: Deutsch, Italiano, English, Español.",
-                "Campo extra: a sinistra l'etichetta (ad es. «Parcheggio»), a destra il contenuto. Vuoto in una lingua = vale il testo tedesco. Lingue: Deutsch, Italiano, English, Español.",
-                "Extra field: label on the left (e.g. \"Parking\"), content on the right. Empty in one language = the German entry is used. Languages: Deutsch, Italiano, English, Español."),
-                318, 78), 32);
+                "Es ist EIN Fenster: Flagge antippen und die Felder in dieser Sprache ausfüllen (✔ = ausgefüllt, leer = deutscher Text). Der Gast sieht alle vier Sprachen nebeneinander, mit Sprachwahl (Reiter „Sprache“) nur seine. Zusatzfeld: links Beschriftung, rechts Inhalt.",
+                "È UNA sola finestra: tocca una bandiera e compila i campi in quella lingua (✔ = compilata, vuoto = testo tedesco). L'ospite vede tutte e quattro le lingue affiancate, con la scelta della lingua (scheda «Lingua») solo la sua. Campo extra: a sinistra l'etichetta, a destra il contenuto.",
+                "It is ONE window: tap a flag and fill in the fields in that language (✔ = filled in, empty = German text). The guest sees all four languages side by side, with language choice (\"Language\" tab) only their own. Extra field: label on the left, content on the right."),
+                316, 100), 32);
 
-            FillEditLangs();
             LoadWelcomeFields();
-            cbEditLang.SelectedIndexChanged += (s, e) =>
-            {
-                if (loadingWelcome) return;
-                StoreWelcomeFields();
-                editSlot = WelcomeInfo.Slots[Math.Max(0, cbEditLang.SelectedIndex)];
-                LoadWelcomeFields();
-            };
+            foreach (TextBox tb in new[] { txtCheckout, txtContact, txtExtraName, txtExtra, txtText })
+                tb.TextChanged += (s, e) => { if (!loadingWelcome) MarkFilledTabs(); };
             chkWelcome2.CheckedChanged += (s, e) => UpdateWelcomeEnabled();
             UpdateWelcomeEnabled();
         }
 
         string CurrentLang4() { return ""; }
 
-        // Auswahl „Texte in Sprache“: Deutsch, Italiano, English, Español
-        void FillEditLangs()
+        // Flaggen-Reiter: Felder der bisherigen Sprache merken, die der gewählten Sprache zeigen
+        void SelectEditLang(string slot)
         {
-            loadingWelcome = true;
-            cbEditLang.Items.Clear();
-            foreach (GuestLang gl in GuestTexts.Active(editInfo.Lang4)) cbEditLang.Items.Add(gl.Name);
-            cbEditLang.SelectedIndex = Math.Max(0, Array.IndexOf(WelcomeInfo.Slots, editSlot));
-            loadingWelcome = false;
+            if (slot == editSlot || Array.IndexOf(WelcomeInfo.Slots, slot) < 0) return;
+            StoreWelcomeFields();
+            editSlot = slot;
+            LoadWelcomeFields();
+        }
+
+        // ✔ an den Flaggen, in deren Sprache schon etwas steht; gewählte Sprache hervorheben
+        void MarkFilledTabs()
+        {
+            if (!loadingWelcome) StoreWelcomeFields();
+            foreach (LangTab tab in langTabs)
+            {
+                tab.Selected = tab.LangTag == editSlot;
+                tab.Filled = WelcomeInfo.LangFields.Any(f => editInfo.Raw(f, tab.LangTag).Trim().Length > 0);
+            }
         }
 
         void StoreWelcomeFields()
@@ -2366,6 +2481,7 @@ namespace GaesteSchutz
 
         void LoadWelcomeFields()
         {
+            loadingWelcome = true;
             txtCheckout.Text = editInfo.Raw("Checkout", editSlot);
             txtContact.Text = editInfo.Raw("Kontakt", editSlot);
             txtExtraName.Text = editInfo.Raw("ExtraName", editSlot);
@@ -2378,6 +2494,8 @@ namespace GaesteSchutz
             Cue(txtExtra, de ? "" : editInfo.Raw("Extra", "de"));
             Cue(txtExtraName, de || editInfo.Raw("ExtraName", "de").Length == 0
                 ? L.T("Zusatzfeld, z. B. Parkplatz", "Campo extra, ad es. Parcheggio", "Extra field, e.g. Parking") : editInfo.Raw("ExtraName", "de"));
+            loadingWelcome = false;
+            MarkFilledTabs();
         }
 
         static void Cue(TextBox tb, string text)
@@ -2396,7 +2514,8 @@ namespace GaesteSchutz
         void UpdateWelcomeEnabled()
         {
             txtWlan.Enabled = txtWlanPw.Enabled = txtCheckout.Enabled = txtContact.Enabled = txtText.Enabled = txtExtraName.Enabled = txtExtra.Enabled =
-                cbEditLang.Enabled = btnPreview.Enabled = chkWelcome2.Checked;
+                btnPreview.Enabled = chkWelcome2.Checked;
+            foreach (LangTab tab in langTabs) tab.Enabled = chkWelcome2.Checked;
         }
 
         WelcomeInfo CurrentWelcome()

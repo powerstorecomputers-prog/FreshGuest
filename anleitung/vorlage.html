@@ -170,7 +170,7 @@
     <li><b>Kein Willkommensassistent:</b> Edge, Chrome und Firefox starten sofort. Bei Chrome wird dafür die Chrome-Anmeldung (Sync) abgeschaltet – Gmail &amp; Co. funktionieren normal.</li>
     <li><b>Kennwörter nicht speichern:</b> keine Frage „Kennwort speichern?“.</li>
     <li><b>Nicht als Standardbrowser fragen.</b></li>
-    <li><b>Browser-Symbole auf den Desktop:</b> „Internet (Edge)“ und „Internet (Chrome)“ – für jeden installierten Browser. Firefox bekommt bewusst kein Symbol: Er bleibt immer in der Sprache, in der er installiert wurde, während sich Edge und Chrome nach der Windows-Sprache des Gastes richten. Am besten Firefox auf dem Gäste-PC deinstallieren. Ein Browser, der nur für dein Konto installiert ist, fehlt bei Gästen; das Protokoll weist darauf hin.</li>
+    <li><b>Browser-Symbole auf den Desktop:</b> „Internet (Edge)“ und „Internet (Chrome)“ – für jeden installierten Browser. Firefox bekommt bewusst kein Symbol: Er bleibt immer in der Sprache, in der er installiert wurde, während sich Edge und Chrome nach der Windows-Sprache des Gastes richten. Am besten Firefox auf dem Gäste-PC deinstallieren. Ein Browser, der nur für dein Konto installiert ist, fehlt bei Gästen; das Protokoll weist darauf hin. Die Symbole „Google Chrome“ und „Microsoft Edge“, die die Browser selbst auf den gemeinsamen Desktop legen, nimmt FreshGuest dort weg, damit Gäste jeden Browser nur einmal sehen – dein Konto bekommt sie auf seinen eigenen Desktop. Beim Abschalten oder Deinstallieren kommen sie zurück.</li>
     <li><b>Feste Startseite:</b> eigenen Link eintippen, z. B. die Seite deiner Ferienwohnung. Firefox öffnet sie immer. Edge und Chrome erlauben das auf privaten PCs nicht – sie öffnen die Startseite über ihr Symbol „Internet (…)“ auf dem Desktop.</li>
     <li>Diese Browser-Einstellungen gelten <b>nur für Gäste</b>, ab dem nächsten Gast – dein eigenes Konto bleibt unverändert. Alle Häkchen weg + Übernehmen entfernt sie wieder.</li>
   </ul>
@@ -199,7 +199,7 @@
   <p>Jeder Gast sieht nach dem Anmelden ein Fenster – mit WLAN-Name und -Kennwort, Check-out-Zeit, deinem Kontakt und dem Hinweis,
   dass alles gelöscht wird. Die Texte stehen immer in <b>Deutsch, Italienisch, Englisch und Spanisch gleichzeitig</b> da, weil man nicht weiß, wer vor dem PC sitzt. Leere Felder werden nicht angezeigt. <b>Vorschau …</b> zeigt das Fenster, wie der Gast es sieht.</p>
   <ul>
-    <li><b>Texte je Sprache:</b> Unter „Texte in Sprache“ die Sprache wählen und Check-out, Kontakt, Zusatzfeld und eigenen Text in dieser Sprache eintragen. Bleibt ein Feld in einer Sprache leer, gilt der deutsche Eintrag. WLAN-Name und -Kennwort gelten für alle.</li>
+    <li><b>Texte je Sprache:</b> Es gibt nur <b>ein</b> Willkommensfenster – die Flaggen über den Feldern wählen nur, in welcher Sprache du gerade schreibst. Flagge antippen und Check-out, Kontakt, Zusatzfeld und eigenen Text in dieser Sprache eintragen; ein grünes ✔ an der Flagge zeigt, dass diese Sprache schon Text hat. Bleibt ein Feld in einer Sprache leer, gilt der deutsche Eintrag. WLAN-Name und -Kennwort gelten für alle. Ist die Sprachwahl für Gäste an, zeigt „Vorschau“ das Fenster in der gerade gewählten Sprache.</li>
     <li><b>Zusatzfeld:</b> ein frei benennbares Feld – links die Beschriftung (z. B. „Parkplatz“ oder „Müll“), rechts der Inhalt.</li>
   </ul>
   <figure><img src="{{BILD:13-gast-willkommen}}" alt="Willkommensfenster beim Gast"><figcaption>So sieht es der Gast – alle Sprachen gleichzeitig</figcaption></figure>
@@ -357,7 +357,7 @@ reg unload HKLM\FG</pre></div>
     <li><b>Nessuna procedura di benvenuto:</b> Edge, Chrome e Firefox partono subito. In Chrome viene disattivato l'accesso a Chrome (sincronizzazione) – Gmail e simili funzionano normalmente.</li>
     <li><b>Non salvare le password:</b> nessuna domanda «Salvare la password?».</li>
     <li><b>Non chiedere di diventare il browser predefinito.</b></li>
-    <li><b>Icone dei browser sul desktop:</b> «Internet (Edge)» e «Internet (Chrome)» – per ogni browser installato. Firefox volutamente non riceve icone: resta sempre nella lingua in cui è stato installato, mentre Edge e Chrome seguono la lingua di Windows dell'ospite. Meglio disinstallare Firefox dal PC ospiti. Un browser installato solo per il tuo account manca agli ospiti; il registro lo segnala.</li>
+    <li><b>Icone dei browser sul desktop:</b> «Internet (Edge)» e «Internet (Chrome)» – per ogni browser installato. Firefox volutamente non riceve icone: resta sempre nella lingua in cui è stato installato, mentre Edge e Chrome seguono la lingua di Windows dell'ospite. Meglio disinstallare Firefox dal PC ospiti. Un browser installato solo per il tuo account manca agli ospiti; il registro lo segnala. Le icone «Google Chrome» e «Microsoft Edge» che i browser mettono da soli sul desktop comune vengono tolte da FreshGuest, così gli ospiti vedono ogni browser una sola volta – il tuo account le riceve sul proprio desktop. Disattivando o disinstallando tornano al loro posto.</li>
     <li><b>Pagina iniziale fissa:</b> inserisci il tuo link, ad es. la pagina del tuo appartamento. Firefox la apre sempre. Edge e Chrome non lo permettono sui PC privati – aprono la pagina iniziale tramite la loro icona «Internet (…)» sul desktop.</li>
     <li>Queste impostazioni del browser valgono <b>solo per gli ospiti</b>, dal prossimo ospite – il tuo account resta invariato. Togli tutte le spunte + Applica per rimuoverle.</li>
   </ul>
@@ -386,7 +386,7 @@ reg unload HKLM\FG</pre></div>
   <p>Dopo l'accesso ogni ospite vede una finestra – con nome e password del Wi-Fi, orario di check-out, il tuo contatto e l'avviso
   che tutto viene cancellato. I testi sono sempre in <b>tedesco, italiano, inglese e spagnolo insieme</b>, perché non si sa chi è seduto al PC. I campi vuoti non vengono mostrati. <b>Anteprima …</b> mostra la finestra come la vede l'ospite.</p>
   <ul>
-    <li><b>Testi per lingua:</b> in «Testi in lingua» scegli la lingua e inserisci check-out, contatto, campo extra e testo proprio in quella lingua. Se un campo resta vuoto in una lingua, vale quello tedesco. Nome e password del Wi-Fi valgono per tutti.</li>
+    <li><b>Testi per lingua:</b> la finestra di benvenuto è <b>una sola</b> – le bandiere sopra i campi scelgono solo in quale lingua stai scrivendo. Tocca una bandiera e inserisci check-out, contatto, campo extra e testo proprio in quella lingua; una ✔ verde sulla bandiera indica che quella lingua ha già del testo. Se un campo resta vuoto in una lingua, vale quello tedesco. Nome e password del Wi-Fi valgono per tutti. Con la scelta della lingua per gli ospiti attiva, «Anteprima» mostra la finestra nella lingua selezionata.</li>
     <li><b>Campo extra:</b> un campo con etichetta libera – a sinistra l'etichetta (ad es. «Parcheggio» o «Rifiuti»), a destra il contenuto.</li>
   </ul>
   <figure><img src="{{BILD:13-gast-willkommen-it}}" alt="Finestra di benvenuto"><figcaption>Così la vede l'ospite – tutte le lingue insieme</figcaption></figure>
@@ -545,7 +545,7 @@ reg unload HKLM\FG</pre></div>
     <li><b>No welcome wizard:</b> Edge, Chrome and Firefox start straight away. For Chrome this turns off Chrome sign-in (sync) – Gmail and the like work normally.</li>
     <li><b>Don't save passwords:</b> no “Save password?” prompt.</li>
     <li><b>Don't ask to become the default browser.</b></li>
-    <li><b>Browser icons on the desktop:</b> “Internet (Edge)” and “Internet (Chrome)” – for every installed browser. Firefox deliberately gets no icon: it always stays in the language it was installed in, while Edge and Chrome follow the guest's Windows language. Best uninstall Firefox from the guest PC. A browser installed for your account only is missing for guests; the log points this out.</li>
+    <li><b>Browser icons on the desktop:</b> “Internet (Edge)” and “Internet (Chrome)” – for every installed browser. Firefox deliberately gets no icon: it always stays in the language it was installed in, while Edge and Chrome follow the guest's Windows language. Best uninstall Firefox from the guest PC. A browser installed for your account only is missing for guests; the log points this out. The “Google Chrome” and “Microsoft Edge” icons that the browsers put on the shared desktop themselves are removed there, so guests see each browser only once – your account gets them on its own desktop. Switching off or uninstalling puts them back.</li>
     <li><b>Fixed start page:</b> type your own link, e.g. your holiday flat's page. Firefox always opens it. Edge and Chrome don't allow this on private PCs – they open the start page via their “Internet (…)” desktop icon.</li>
     <li>These browser settings apply <b>to guests only</b>, from the next guest – your own account stays unchanged. Untick everything + Apply removes them again.</li>
   </ul>
@@ -574,7 +574,7 @@ reg unload HKLM\FG</pre></div>
   <p>After sign-in every guest sees a window – with Wi-Fi name and password, check-out time, your contact and the notice
   that everything is deleted. The texts are always shown in <b>German, Italian, English and Spanish together</b>, because you never know who is sitting at the PC. Empty fields are not shown. <b>Preview …</b> shows the window as the guest sees it.</p>
   <ul>
-    <li><b>Texts per language:</b> under “Texts in language” choose the language and enter check-out, contact, extra field and own text in that language. If a field is empty in one language, the German entry is used. Wi-Fi name and password apply to all.</li>
+    <li><b>Texts per language:</b> there is only <b>one</b> welcome window – the flags above the fields only choose the language you are writing in. Tap a flag and enter check-out, contact, extra field and own text in that language; a green ✔ on the flag shows that this language already has text. If a field is empty in one language, the German entry is used. Wi-Fi name and password apply to all. With language choice for guests on, “Preview” shows the window in the selected language.</li>
     <li><b>Extra field:</b> a field with a label of your choice – label on the left (e.g. “Parking” or “Waste”), content on the right.</li>
   </ul>
   <figure><img src="{{BILD:13-gast-willkommen-en}}" alt="Guest welcome window"><figcaption>What the guest sees – all languages together</figcaption></figure>

@@ -189,6 +189,10 @@ if ($LASTEXITCODE -eq 0) {
         foreach ($v in 'Wallpaper', 'WallpaperStyle', 'DisableRegistryTools', 'DisableCMD') { Remove-ItemProperty $sysU -Name $v -ErrorAction SilentlyContinue }
         Remove-ItemProperty "$r\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name NoControlPanel -ErrorAction SilentlyContinue
         foreach ($v in 'Device', 'LegacyDefaultPrinterMode') { Remove-ItemProperty "$r\Software\Microsoft\Windows NT\CurrentVersion\Windows" -Name $v -ErrorAction SilentlyContinue }
+        if ("$($cfg.SchnellStart)" -eq '1') {
+            foreach ($v in 'StartupDelayInMSec', 'WaitForIdleState') { Remove-ItemProperty "$r\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize" -Name $v -ErrorAction SilentlyContinue }
+            L 'Standardprofil: Autostart-Verzoegerung wieder Windows-Standard'
+        }
         L 'Standardprofil: Hintergrund, Sperren, Drucker zurueckgesetzt'
     } catch { L ('Standardprofil FEHLER: ' + $_.Exception.Message) 'Yellow' }
     finally {
@@ -205,6 +209,25 @@ $namen = @('Internet (Edge).lnk', 'Internet (Chrome).lnk', 'Internet (Firefox).l
 foreach ($n in $namen) { $f = Join-Path $defDesk $n; if (Test-Path -LiteralPath $f) { Remove-Item -LiteralPath $f -Force; L "Gast-Desktop: entfernt $n" } }
 $pub = [Environment]::GetFolderPath('CommonDesktopDirectory')
 foreach ($n in 'Internet (Edge).lnk', 'Internet (Chrome).lnk', 'Internet (Firefox).lnk') { $f = Join-Path $pub $n; if (Test-Path -LiteralPath $f) { Remove-Item -LiteralPath $f -Force; L "Oeffentlicher Desktop: entfernt $n" } }
+# Ab 1.26: "Google Chrome" / "Microsoft Edge" vom oeffentlichen Desktop wurden gesichert -> zurueckholen
+$sich = Join-Path $daten 'Desktop-Sicherung'
+foreach ($n in @(("$($store.SymboleVerschoben)").Split('|') | Where-Object { $_ })) {
+    $b = Join-Path $sich $n; $f = Join-Path $pub $n
+    if (Test-Path -LiteralPath $b) {
+        if (-not (Test-Path -LiteralPath $f)) { Copy-Item -LiteralPath $b $f }
+        L "Oeffentlicher Desktop: wiederhergestellt $n"
+        $eigen = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) $n
+        if ((("$($store.SymboleKopiert)").Split('|') -contains $n) -and (Test-Path -LiteralPath $eigen)) { Remove-Item -LiteralPath $eigen -Force }
+    }
+}
+if ("$($store.EdgeUpdateSymbol)" -eq '1') {
+    Remove-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate' -Name CreateDesktopShortcutDefault -ErrorAction SilentlyContinue
+    L 'Edge-Update: Desktop-Symbol wieder Windows-Standard'
+}
+if ("$($cfg.SchnellStartAnimation)" -eq '1') {
+    Remove-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableFirstLogonAnimation -ErrorAction SilentlyContinue
+    L 'Animation bei der ersten Anmeldung: wieder Windows-Standard'
+}
 $autostart = Join-Path ([Environment]::GetFolderPath('CommonStartup')) 'FreshGuest-Gaststart.lnk'
 if (Test-Path -LiteralPath $autostart) { Remove-Item -LiteralPath $autostart -Force; L 'Autostart-Verknuepfung fuer Gaeste entfernt' }
 

@@ -54,7 +54,7 @@ Commercial use is explicitly allowed (see [License](#license)).
 
 All settings apply to guests only – your own account stays as it is.
 
-- **Browser** – Edge and Chrome without first-run wizards, password saving or “make default” prompts; desktop icons and a fixed start page. Both follow the guest's Windows language (Firefox stays in its install language, so it gets no icon)
+- **Browser** – Edge and Chrome without first-run wizards, password saving or “make default” prompts; desktop icons and a fixed start page. Both follow the guest's Windows language (Firefox stays in its install language, so it gets no icon); the browsers' own icons on the shared desktop are moved away so guests see each browser only once
 - **Wallpaper** and **profile picture** for guests – the picture also replaces the grey question-mark figure on the “Guest” tile of the sign-in screen
 - **Desktop** – files, programs and links every new guest finds on the desktop
 - **Autostart** – open a page or program when a guest signs in

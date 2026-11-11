@@ -414,6 +414,58 @@ namespace GaesteSchutz
         }
     }
 
+    // Kleiner Flaggen-Reiter in den Einstellungen (Willkommen): welche Sprache gerade bearbeitet wird.
+    // Selected = wird bearbeitet (violett, Neon-Rahmen); Filled = in dieser Sprache steht schon Text (✔).
+    class LangTab : Control
+    {
+        public readonly string LangTag;
+        bool selected, filled, hot;
+        public bool Selected { get { return selected; } set { selected = value; Invalidate(); } }
+        public bool Filled { get { return filled; } set { filled = value; Invalidate(); } }
+
+        public LangTab(string tag, string name)
+        {
+            LangTag = tag;
+            Text = name;
+            Font = new Font("Segoe UI Semibold", 9f);
+            Cursor = Cursors.Hand;
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        }
+
+        protected override void OnMouseEnter(EventArgs e) { hot = true; Invalidate(); base.OnMouseEnter(e); }
+        protected override void OnMouseLeave(EventArgs e) { hot = false; Invalidate(); base.OnMouseLeave(e); }
+        protected override void OnEnabledChanged(EventArgs e) { Invalidate(); base.OnEnabledChanged(e); }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            float k = DeviceDpi / 96f;
+            g.Clear(Parent != null ? Parent.BackColor : Ui.Surface);
+            var r = new Rectangle(0, 0, Width - 1, Height - 1);
+            using (var br = new SolidBrush(selected ? Ui.Blue : hot && Enabled ? Ui.FieldHover : Ui.Field)) g.FillRectangle(br, r);
+            int pad = (int)(6 * k);
+            int fh = Height - 2 * (int)(8 * k), fw = fh * 3 / 2;
+            var fr = new Rectangle(pad, (Height - fh) / 2, fw, fh);
+            Flags.Draw(g, fr, LangTag);
+            using (var pen = new Pen(Color.FromArgb(120, 0, 0, 0))) g.DrawRectangle(pen, fr);
+            if (!Enabled)
+                using (var br = new SolidBrush(Color.FromArgb(150, Ui.Field))) g.FillRectangle(br, fr);
+            // Name, dahinter grünes ✔, wenn in dieser Sprache schon etwas steht
+            int check = filled ? TextRenderer.MeasureText(g, "✔", Font).Width : 0;
+            var tr = Rectangle.FromLTRB(fr.Right + pad, 0, Width - pad - check, Height);
+            var flags = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
+            TextRenderer.DrawText(g, Text, Font, tr, Enabled ? Color.White : Ui.Disabled, flags);
+            if (filled)
+            {
+                int tw = Math.Min(TextRenderer.MeasureText(g, Text, Font, tr.Size, flags).Width, tr.Width);
+                TextRenderer.DrawText(g, "✔", Font, new Rectangle(tr.X + tw + (int)(3 * k), 0, check, Height),
+                    Enabled ? Ui.OkText : Ui.Disabled, flags & ~TextFormatFlags.EndEllipsis);
+            }
+            using (var pen = new Pen(selected && Enabled ? Logo.Cyan : Ui.Border, selected ? 2f * k : 1f))
+                g.DrawRectangle(pen, selected ? Rectangle.Inflate(r, -(int)k, -(int)k) : r);
+        }
+    }
+
     // Einfache Flaggen, selbst gezeichnet (Windows zeigt Flaggen-Emojis nur als Buchstaben)
     static class Flags
     {
