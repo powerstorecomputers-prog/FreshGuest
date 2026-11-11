@@ -2633,9 +2633,9 @@ namespace GaesteSchutz
             cbIdle.SelectedIndex = ii < 0 ? 2 : ii;
             t.Controls.Add(cbIdle);
             Indent(AddInfo(t, L.T(
-                "Vorher erscheint 60 Sekunden lang „Noch da?“ (in vier Sprachen). Klickt niemand, fährt der PC herunter. Läuft ein Video oder Film, passiert nichts.",
-                "Prima appare per 60 secondi «Ci sei ancora?» (in quattro lingue). Se nessuno clicca, il PC si spegne. Se è in corso un video o un film, non succede nulla.",
-                "First \"Still there?\" appears for 60 seconds (in four languages). If nobody clicks, the PC shuts down. If a video or film is playing, nothing happens."), 128, 44), 32);
+                "Zählt ab der letzten Maus- oder Tastatureingabe – wer arbeitet oder ein Video schaut, wird nie unterbrochen. Danach 60 Sekunden „Noch da?“; klickt niemand, fährt der PC herunter.",
+                "Conta dall'ultimo uso di mouse o tastiera – chi lavora o guarda un video non viene mai interrotto. Poi 60 secondi «Ci sei ancora?»; se nessuno clicca, il PC si spegne.",
+                "Counts from the last mouse or keyboard input – anyone working or watching a video is never interrupted. Then 60 seconds of \"Still there?\"; if nobody clicks, the PC shuts down."), 128, 66), 32);
 
             string time = GuestExtras.RestartTime(store);
             chkRestart = AddCheck(t, L.T("PC jeden Tag neu starten um:", "Riavvia il PC ogni giorno alle:", "Restart the PC every day at:"), 200, time != null);
