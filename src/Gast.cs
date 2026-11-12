@@ -103,7 +103,7 @@ namespace GaesteSchutz
         }
 
         // Verknüpfung im Autostart-Ordner nur, wenn mindestens eine Gast-Funktion an ist
-        static void UpdateStartupLink()
+        internal static void UpdateStartupLink()
         {
             bool need = StartLinkNeeded();
             SyncFastStart(need);
@@ -196,7 +196,30 @@ namespace GaesteSchutz
             using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey))
                 return k != null && (!string.IsNullOrEmpty(Convert.ToString(k.GetValue("GastAutostart", ""))) ||
                                      ConfigInt(k, "GastWillkommen") == 1 || ConfigInt(k, "GastAbmeldenMin") > 0 ||
-                                     ConfigInt(k, "GastProfilbild") == 1 || ConfigInt(k, "GastHinweis") == 1 || ConfigInt(k, "GastSprachwahl") == 1);
+                                     ConfigInt(k, "GastProfilbild") == 1 || ConfigInt(k, "GastHinweis") == 1 || ConfigInt(k, "GastSprachwahl") == 1 ||
+                                     ConfigInt(k, "GastBrowserSymbole") == 1);
+        }
+
+        // Läuft in der Gast-Sitzung: Neben „Internet (Edge/Chrome)“ keine zweite Verknüpfung zum selben Browser auf
+        // dem eigenen Desktop des Gastes (Chrome legt „Google Chrome“ bei jedem neuen Konto selbst an).
+        static void RemoveOwnBrowserDuplicates()
+        {
+            try
+            {
+                string desk = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                if (string.IsNullOrEmpty(desk) || !Directory.Exists(desk)) return;
+                string[] files = Directory.GetFiles(desk, "*.lnk");
+                Func<string, bool> ours = f => Path.GetFileName(f).StartsWith("Internet (", StringComparison.OrdinalIgnoreCase);
+                var targets = files.Where(ours).Select(ShortcutTarget).Where(t => !string.IsNullOrEmpty(t)).ToList();
+                if (targets.Count == 0) return;
+                foreach (string f in files.Where(f => !ours(f)))
+                {
+                    string t = ShortcutTarget(f);
+                    if (!string.IsNullOrEmpty(t) && targets.Any(o => BrowserSetup.SameProgram(o, t)))
+                        try { File.Delete(f); } catch { }
+                }
+            }
+            catch { }
         }
 
         // ======================================================================
@@ -386,7 +409,9 @@ namespace GaesteSchutz
                         foreach (string slot in w.AllSlots) w.Set(f, slot, Convert.ToString(k.GetValue(WelcomeInfo.Key(f, slot), "")));
                     w.IdleMin = idle;
                 }
-                if (string.IsNullOrEmpty(target) && !welcome && idle <= 0 && !picture && !notice && !w.LangChoice) return;
+                bool browserIcons;
+                using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey)) browserIcons = ConfigInt(k, "GastBrowserSymbole") == 1;
+                if (string.IsNullOrEmpty(target) && !welcome && idle <= 0 && !picture && !notice && !w.LangChoice && !browserIcons) return;
                 string sid = null;
                 try
                 {
@@ -396,6 +421,15 @@ namespace GaesteSchutz
                         if (ex != null) return;        // geschütztes Konto (z. B. dein Admin-Konto) -> nichts tun
                 }
                 catch { }
+
+                if (browserIcons)                      // jetzt und noch zweimal etwas später (falls Chrome es spät anlegt)
+                {
+                    RemoveOwnBrowserDuplicates();
+                    new System.Threading.Thread(() =>
+                    {
+                        foreach (int ms in new[] { 8000, 30000 }) { System.Threading.Thread.Sleep(ms); RemoveOwnBrowserDuplicates(); }
+                    }) { IsBackground = false }.Start();     // Prozess wartet darauf (auch ohne Gast-Fenster)
+                }
 
                 if (!string.IsNullOrEmpty(target))
                     try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); } catch { }

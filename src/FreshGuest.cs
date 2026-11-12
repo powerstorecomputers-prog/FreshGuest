@@ -41,8 +41,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("PC für Feriengäste: Gast-Daten werden beim Neustart gelöscht")]
 [assembly: AssemblyCompany("PowerStore Computers")]
 [assembly: AssemblyCopyright("© 2026 PowerStore Computers")]
-[assembly: AssemblyVersion("1.27.0.0")]
-[assembly: AssemblyFileVersion("1.27.0.0")]
+[assembly: AssemblyVersion("1.28.0.0")]
+[assembly: AssemblyFileVersion("1.28.0.0")]
 
 namespace GaesteSchutz
 {
@@ -73,7 +73,7 @@ namespace GaesteSchutz
     static class Program
     {
         public const string Name = "FreshGuest";
-        public const string Version = "1.27";
+        public const string Version = "1.28";
         public const string Copyright = "© 2026 PowerStore Computers";
         public static bool Demo;
         public static bool CleanShots;   // Bilder für die Anleitung: ohne DEMO-Hinweise
@@ -1015,7 +1015,7 @@ namespace GaesteSchutz
             try { return Path.GetFullPath(Environment.ExpandEnvironmentVariables(p ?? "")).TrimEnd('\\'); } catch { return p ?? ""; }
         }
 
-        static bool SameProgram(string a, string b)
+        internal static bool SameProgram(string a, string b)
         {
             if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
             if (string.Equals(NormPath(a), NormPath(b), StringComparison.OrdinalIgnoreCase)) return true;
@@ -1042,6 +1042,21 @@ namespace GaesteSchutz
         }
 
         static string GuestBackup { get { return Path.Combine(PublicBackup, "Gast-Desktop"); } }
+
+        // Chrome legt beim ersten Anmelden JEDES neuen Kontos selbst „Google Chrome“ auf dessen eigenen Desktop
+        // (Active Setup) – das geht vorher nicht zu verhindern. Merker für die Gast-Sitzung: dort wird es gleich
+        // wieder entfernt, wenn „Internet (Chrome)“ da ist (GuestExtras.RemoveOwnBrowserDuplicates).
+        static void SetGuestIconFlag(bool on)
+        {
+            if (Program.Demo) return;
+            try
+            {
+                using (RegistryKey k = Registry.LocalMachine.CreateSubKey(GuestExtras.ConfigKey))
+                    if (on) k.SetValue("GastBrowserSymbole", "1", RegistryValueKind.String); else k.DeleteValue("GastBrowserSymbole", false);
+                GuestExtras.UpdateStartupLink();
+            }
+            catch { }
+        }
 
         // Jedes Programm soll beim Gast nur EINMAL auf dem Desktop sein. Der Gast sieht den gemeinsamen Desktop UND
         // den Desktop des Standardprofils (Reiter „Desktop“ + „Internet (…)“). Doppelte vom gemeinsamen Desktop kommen
@@ -1172,8 +1187,9 @@ namespace GaesteSchutz
                             k.SetValue(v.Name, v.Data, v.Kind);
                 });
             }
-            MakeShortcuts(o, url, log);
+            List<string> made = MakeShortcuts(o, url, log);
             SyncPublicDuplicates(store, log);
+            SetGuestIconFlag(made.Count > 0);
             if ((o & BrowserOpt.NoWelcome) != 0) log(L.T("✔ Kein Willkommensassistent", "✔ Nessuna procedura di benvenuto", "✔ No welcome wizard"));
             if ((o & BrowserOpt.NoPasswords) != 0) log(L.T("✔ Kennwörter werden nicht gespeichert", "✔ Le password non vengono salvate", "✔ Passwords are not saved"));
             if ((o & BrowserOpt.NoDefaultPrompt) != 0) log(L.T("✔ Keine Standardbrowser-Frage", "✔ Nessuna richiesta browser predefinito", "✔ No default-browser prompt"));
@@ -1199,6 +1215,7 @@ namespace GaesteSchutz
                 ClearShortcuts();
                 GuestExtras.WithDefaultHive(ClearHive);
                 SyncPublicDuplicates(store, null);       // Browser-Symbole weg – Doppelte vom Reiter „Desktop“ bleiben versteckt
+                SetGuestIconFlag(false);
             }
             store.Set("BrowserAktiv", "0");
             if (log != null) log(L.T("Browser-Einstellungen für Gäste entfernt.", "Impostazioni browser per gli ospiti rimosse.",
@@ -2060,7 +2077,7 @@ namespace GaesteSchutz
         // --- Autostart ---------------------------------------------------------
         // Verknüpfung im Autostart-Ordner für ALLE Benutzer -> "FreshGuest.exe --gast-start".
         // Das prüft beim Anmelden, ob es ein Gast ist (kein geschütztes Konto), und startet nur dann.
-        const string ConfigKey = @"SOFTWARE\FreshGuest";     // für Gäste lesbar (Standardrechte: nur lesen)
+        internal const string ConfigKey = @"SOFTWARE\FreshGuest";     // für Gäste lesbar (Standardrechte: nur lesen)
 
         static string StartupLnk
         {
