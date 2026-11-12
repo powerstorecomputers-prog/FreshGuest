@@ -54,7 +54,7 @@ Commercial use is explicitly allowed (see [License](#license)).
 
 All settings apply to guests only – your own account stays as it is.
 
-- **Browser** – Edge and Chrome without first-run wizards, password saving or “make default” prompts. Edge gets an “Internet (Edge)” desktop icon that opens your fixed start page; Chrome keeps its own icon (Chrome would otherwise recreate it for every guest). Both follow the guest's Windows language (Firefox stays in its install language, so it gets no icon)
+- **Browser** – Edge and Chrome without first-run wizards, password saving or “make default” prompts. Fixed start page: Edge via an “Internet (Edge)” desktop icon; Chrome via its own icon, using a preferences file for new Chrome profiles (every guest is a new profile; your own Chrome is unchanged). Both follow the guest's Windows language (Firefox stays in its install language, so it gets no icon)
 - **Wallpaper** and **profile picture** for guests – the picture also replaces the grey question-mark figure on the “Guest” tile of the sign-in screen
 - **Desktop** – files, programs and links every new guest finds on the desktop; every program appears only once, even if it is also on the shared desktop (your account keeps its icons)
 - **Autostart** – open a page or program when a guest signs in

@@ -221,6 +221,13 @@ foreach ($n in @(("$($store.SymboleVerschoben)").Split('|') | Where-Object { $_ 
         if ((("$($store.SymboleKopiert)").Split('|') -contains $n) -and (Test-Path -LiteralPath $eigen)) { Remove-Item -LiteralPath $eigen -Force }
     }
 }
+# Ab 1.29: Chrome-Vorgabedatei fuer neue Profile (Startseite der Gaeste) entfernen, gesicherte zuruecklegen
+$cv = "$($store.ChromeVorgaben)"
+if ($cv -and (Test-Path -LiteralPath $cv)) {
+    Remove-Item -LiteralPath $cv -Force
+    if (Test-Path -LiteralPath "$cv.FreshGuest-Sicherung") { Move-Item -LiteralPath "$cv.FreshGuest-Sicherung" $cv }
+    L 'Chrome: Vorgabedatei fuer Gaeste entfernt'
+}
 if ("$($store.EdgeUpdateSymbol)" -eq '1') {
     Remove-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate' -Name CreateDesktopShortcutDefault -ErrorAction SilentlyContinue
     L 'Edge-Update: Desktop-Symbol wieder Windows-Standard'

@@ -934,9 +934,9 @@ namespace GaesteSchutz
             // Desktop, legt Chrome beim ersten Start jedes Gastes „Google Chrome“ selbst wieder an (Test am Gäste-PC).
             // Also bleibt sein eigenes Symbol – ohne feste Startseite (die erlaubt Chrome auf privaten PCs nur so).
             if (ChromeExe == null) missing.Add("Chrome");
-            else log(L.T("  Chrome behält sein eigenes Symbol „Google Chrome“ (sonst legt Chrome es bei jedem Gast neu an) – die feste Startseite gilt nur für Edge.",
-                         "  Chrome mantiene la sua icona «Google Chrome» (altrimenti Chrome la ricrea per ogni ospite) – la pagina iniziale fissa vale solo per Edge.",
-                         "  Chrome keeps its own \"Google Chrome\" icon (otherwise Chrome recreates it for every guest) – the fixed start page applies to Edge only."));
+            else log(L.T("  Chrome behält sein eigenes Symbol „Google Chrome“ (sonst legt Chrome es bei jedem Gast neu an).",
+                         "  Chrome mantiene la sua icona «Google Chrome» (altrimenti Chrome la ricrea per ogni ospite).",
+                         "  Chrome keeps its own \"Google Chrome\" icon (otherwise Chrome recreates it for every guest)."));
             if (made.Count > 0)
                 log(L.T("✔ Symbole auf dem Desktop der Gäste: ", "✔ Icone sul desktop degli ospiti: ", "✔ Icons on the guests' desktop: ") +
                     string.Join(", ", made.Select(n => "Internet (" + n + ")").ToArray()));
@@ -1020,6 +1020,59 @@ namespace GaesteSchutz
         static string NormPath(string p)
         {
             try { return Path.GetFullPath(Environment.ExpandEnvironmentVariables(p ?? "")).TrimEnd('\\'); } catch { return p ?? ""; }
+        }
+
+        // Chrome: Startseite über die Vorgabedatei für NEUE Profile (initial_preferences neben chrome.exe). Jeder Gast
+        // ist ein neues Konto -> neues Chrome-Profil -> bekommt die Startseite, ohne Einrichtungsfragen und ohne eigenes
+        // Desktop-Symbol. Kein Richtlinien-Eintrag (die erlaubt Chrome auf privaten PCs für die Startseite nicht).
+        // Bestehende Profile (dein Konto) ändern sich nicht. Eine schon vorhandene Datei wird gesichert und
+        // beim Abschalten zurückgelegt.
+        const string ChromePrefsName = "initial_preferences";
+
+        static void SyncChromePrefs(Store store, string url, Action<string> log)
+        {
+            if (Program.Demo) return;
+            if (log == null) log = s => { };
+            string written = store.Get("ChromeVorgaben");             // Pfad unserer Datei
+            try
+            {
+                // alte eigene Datei weg, gesicherte zurück
+                if (!string.IsNullOrEmpty(written))
+                {
+                    if (File.Exists(written)) File.Delete(written);
+                    string bak = written + ".FreshGuest-Sicherung";
+                    if (File.Exists(bak)) File.Move(bak, written);
+                    store.Remove("ChromeVorgaben");
+                }
+                string exe = ChromeExe;
+                if (url == null || exe == null) return;
+                string file = Path.Combine(Path.GetDirectoryName(exe), ChromePrefsName);
+                if (File.Exists(file)) File.Copy(file, file + ".FreshGuest-Sicherung", true);
+                string u = url.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                string json =
+                    "{\r\n" +
+                    "  \"homepage\": \"" + u + "\",\r\n" +
+                    "  \"homepage_is_newtabpage\": false,\r\n" +
+                    "  \"browser\": { \"show_home_button\": true, \"check_default_browser\": false },\r\n" +
+                    "  \"session\": { \"restore_on_startup\": 4, \"startup_urls\": [ \"" + u + "\" ] },\r\n" +
+                    "  \"first_run_tabs\": [ \"" + u + "\" ],\r\n" +
+                    "  \"sync_promo\": { \"show_on_first_run_allowed\": false },\r\n" +
+                    "  \"distribution\": {\r\n" +
+                    "    \"skip_first_run_ui\": true,\r\n" +
+                    "    \"suppress_first_run_default_browser_prompt\": true,\r\n" +
+                    "    \"suppress_first_run_bubble\": true,\r\n" +
+                    "    \"do_not_create_desktop_shortcut\": true,\r\n" +
+                    "    \"do_not_create_quick_launch_shortcut\": true,\r\n" +
+                    "    \"do_not_create_taskbar_shortcut\": true\r\n" +
+                    "  }\r\n" +
+                    "}\r\n";
+                File.WriteAllText(file, json, new UTF8Encoding(false));
+                store.Set("ChromeVorgaben", file);
+                log(L.T("✔ Chrome: Startseite für jeden neuen Gast (Vorgabedatei für neue Profile; dein Chrome bleibt unverändert)",
+                        "✔ Chrome: pagina iniziale per ogni nuovo ospite (file di impostazioni per i nuovi profili; il tuo Chrome resta invariato)",
+                        "✔ Chrome: start page for every new guest (preferences file for new profiles; your Chrome stays unchanged)"));
+            }
+            catch (Exception ex) { log("  Chrome: " + ex.Message); }
         }
 
         static bool IsChrome(string target) { return Path.GetFileName(target ?? "").Equals("chrome.exe", StringComparison.OrdinalIgnoreCase); }
@@ -1209,6 +1262,7 @@ namespace GaesteSchutz
             List<string> made = MakeShortcuts(o, url, log);
             SyncPublicDuplicates(store, log);
             SetGuestIconFlag(made.Count > 0);
+            SyncChromePrefs(store, (o & BrowserOpt.StartPage) != 0 ? url : null, log);
             if ((o & BrowserOpt.NoWelcome) != 0) log(L.T("✔ Kein Willkommensassistent", "✔ Nessuna procedura di benvenuto", "✔ No welcome wizard"));
             if ((o & BrowserOpt.NoPasswords) != 0) log(L.T("✔ Kennwörter werden nicht gespeichert", "✔ Le password non vengono salvate", "✔ Passwords are not saved"));
             if ((o & BrowserOpt.NoDefaultPrompt) != 0) log(L.T("✔ Keine Standardbrowser-Frage", "✔ Nessuna richiesta browser predefinito", "✔ No default-browser prompt"));
@@ -1235,6 +1289,7 @@ namespace GaesteSchutz
                 GuestExtras.WithDefaultHive(ClearHive);
                 SyncPublicDuplicates(store, null);       // Browser-Symbole weg – Doppelte vom Reiter „Desktop“ bleiben versteckt
                 SetGuestIconFlag(false);
+                SyncChromePrefs(store, null, null);
             }
             store.Set("BrowserAktiv", "0");
             if (log != null) log(L.T("Browser-Einstellungen für Gäste entfernt.", "Impostazioni browser per gli ospiti rimosse.",
@@ -2293,9 +2348,9 @@ namespace GaesteSchutz
             chkStart.CheckedChanged += (s, e) => txtUrl.Enabled = chkStart.Checked;
             txtUrl.Enabled = chkStart.Checked;
             var note = AddInfo(tBrowser, L.T(
-                "Edge öffnet die Startseite über sein Symbol „Internet (Edge)“. Chrome behält sein eigenes Symbol (ohne Startseite), Firefox bekommt keins.",
-                "Edge apre la pagina iniziale tramite l'icona «Internet (Edge)». Chrome mantiene la sua icona (senza pagina iniziale), Firefox nessuna.",
-                "Edge opens the start page via its \"Internet (Edge)\" icon. Chrome keeps its own icon (no start page), Firefox gets none."), 268, 40);
+                "Edge: über sein Symbol „Internet (Edge)“. Chrome: über sein eigenes Symbol, für jeden neuen Gast. Firefox bekommt kein Symbol.",
+                "Edge: tramite l'icona «Internet (Edge)». Chrome: tramite la sua icona, per ogni nuovo ospite. Firefox non riceve icone.",
+                "Edge: via its \"Internet (Edge)\" icon. Chrome: via its own icon, for every new guest. Firefox gets no icon."), 268, 40);
             note.Left = 32; note.Width = 474;
             AddInfo(tBrowser, L.T("Alle Häkchen weg + Übernehmen = Browser-Einstellungen entfernen.",
                 "Togli tutte le spunte + Applica = rimuovi le impostazioni del browser.",
