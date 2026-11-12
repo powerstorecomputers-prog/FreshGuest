@@ -127,27 +127,39 @@ namespace GaesteSchutz
         //   WaitForIdleState) – steht nur im Standardprofil, gilt also nur für Gäste.
         // - Die Animation bei der ersten Anmeldung („Hallo“ … „Wir bereiten alles vor“) fällt weg. Jeder Gast meldet
         //   sich zum ersten Mal an, mit Sprachwahl sogar zweimal. Nur gesetzt, wenn der Wert noch nicht da war.
+        // - Ab 1.27: Windows 11 öffnet bei der ersten Anmeldung eines neuen Kontos von selbst das Startmenü – es lag
+        //   über den Flaggen. StartShownOnUpgrade = 1 im Standardprofil sagt Windows, dass es schon gezeigt wurde.
+        // Merker SchnellStart: "1" = Stand 1.26, "2" = mit Startmenü-Wert (ältere Stände werden ergänzt).
         const string SerializeKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize";
+        const string AdvancedKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced";
+        const int FastStartLevel = 2;
         const string SystemPolicy = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
 
         public static void SyncFastStart(bool on)
         {
-            bool have;
-            using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey)) have = ConfigInt(k, "SchnellStart") == 1;
-            if (on == have || Program.Demo) return;
+            int level;
+            using (RegistryKey k = Registry.LocalMachine.OpenSubKey(ConfigKey)) level = ConfigInt(k, "SchnellStart");
+            if ((on ? level == FastStartLevel : level == 0) || Program.Demo) return;
             try
             {
                 WithDefaultHive(root =>
                 {
                     if (on)
+                    {
                         using (RegistryKey k = root.CreateSubKey(SerializeKey))
                         {
                             k.SetValue("StartupDelayInMSec", 0, RegistryValueKind.DWord);
                             k.SetValue("WaitForIdleState", 0, RegistryValueKind.DWord);
                         }
+                        using (RegistryKey k = root.CreateSubKey(AdvancedKey)) k.SetValue("StartShownOnUpgrade", 1, RegistryValueKind.DWord);
+                    }
                     else
+                    {
                         using (RegistryKey k = root.OpenSubKey(SerializeKey, true))
                             if (k != null) { k.DeleteValue("StartupDelayInMSec", false); k.DeleteValue("WaitForIdleState", false); }
+                        using (RegistryKey k = root.OpenSubKey(AdvancedKey, true))
+                            if (k != null) k.DeleteValue("StartShownOnUpgrade", false);
+                    }
                 });
                 using (RegistryKey p = Registry.LocalMachine.CreateSubKey(SystemPolicy))
                 using (RegistryKey c = Registry.LocalMachine.CreateSubKey(ConfigKey))
@@ -159,7 +171,7 @@ namespace GaesteSchutz
                             p.SetValue("EnableFirstLogonAnimation", 0, RegistryValueKind.DWord);
                             c.SetValue("SchnellStartAnimation", "1", RegistryValueKind.String);
                         }
-                        c.SetValue("SchnellStart", "1", RegistryValueKind.String);
+                        c.SetValue("SchnellStart", FastStartLevel.ToString(), RegistryValueKind.String);
                     }
                     else
                     {
@@ -265,6 +277,7 @@ namespace GaesteSchutz
                 }
             }
             if (names.Count == 0) store.Remove("DesktopDateien"); else store.Set("DesktopDateien", string.Join("|", names.ToArray()));
+            try { BrowserSetup.SyncPublicDuplicates(store, log); } catch (Exception ex) { log("  " + ex.Message); }   // jedes Programm nur einmal
             store.Save();
             log(names.Count == 0
                 ? L.T("Desktop für Gäste: keine eigenen Dateien.", "Desktop per gli ospiti: nessun file proprio.", "Guest desktop: no own files.")
@@ -324,6 +337,7 @@ namespace GaesteSchutz
                 UpdateStartupLink();
             }
             if (welcomeOn) store.Set("Willkommen", "1"); else store.Remove("Willkommen");
+            if (Brand.HasDefaults) store.Set("MarkeVorgaben", "1");       // Vorgaben der persönlichen Fassung sind übernommen
             foreach (var kv in vals)
                 if (kv.Value.Length > 0) store.Set(kv.Key, kv.Value); else store.Remove(kv.Key);
             foreach (string n in store.Keys)
@@ -460,6 +474,43 @@ namespace GaesteSchutz
         {
             f.Show();
             f.Activate();
+            CloseStartMenu(f);
+        }
+
+        // Absicherung: Öffnet Windows beim ersten Anmelden trotzdem das Startmenü, liegt es über unserem Fenster.
+        // In den ersten 25 Sekunden: Ist das Startmenü im Vordergrund, mit Esc schließen und
+        // unser Fenster nach vorne holen. Danach öffnet nur noch der Gast selbst das Startmenü – dann bleibt es offen.
+        [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+        [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+        [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        static bool StartMenuInFront()
+        {
+            try
+            {
+                uint pid;
+                GetWindowThreadProcessId(GetForegroundWindow(), out pid);
+                if (pid == 0) return false;
+                using (Process p = Process.GetProcessById((int)pid))
+                    return p.ProcessName.Equals("StartMenuExperienceHost", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        }
+
+        static void CloseStartMenu(Form f)
+        {
+            var started = DateTime.Now;
+            var t = new Timer { Interval = 500 };
+            t.Tick += (s, e) =>
+            {
+                if (f.IsDisposed || (DateTime.Now - started).TotalSeconds > 25) { t.Stop(); t.Dispose(); return; }
+                if (!StartMenuInFront()) return;
+                keybd_event(0x1B, 0, 0, UIntPtr.Zero);          // Esc schließt das Startmenü
+                keybd_event(0x1B, 0, 2, UIntPtr.Zero);
+                try { if (!f.IsDisposed) { SetForegroundWindow(f.Handle); f.Activate(); } } catch { }
+            };
+            t.Start();
         }
 
         void Check()
@@ -770,7 +821,7 @@ namespace GaesteSchutz
             else TopMost = true;
             Text = L.AppName + (preview ? "  (" + L.T("Vorschau", "Anteprima", "Preview") + ")" : "");
             int lockupRight;
-            Logo.MakeHeader(this, 78, out lockupRight);
+            Brand.AddToHeader(Logo.MakeHeader(this, 78, out lockupRight), lockupRight);
 
             int y = 92;
             var title = Ui.MakeLabel(string.Join("   ", langs.Select(l => l.Note).ToArray()), 22, y, w - 44, 44);
@@ -828,11 +879,13 @@ namespace GaesteSchutz
             bool one = langs.Count == 1;
             Text = L.AppName + (preview ? "  (" + L.T("Vorschau", "Anteprima", "Preview") + ")" : "");
             int lockupRight;
-            Logo.MakeHeader(this, 78, out lockupRight);
+            Brand.AddToHeader(Logo.MakeHeader(this, 78, out lockupRight), lockupRight);
 
             int y = 94;
-            var title = Ui.MakeLabel(string.Join("   ", langs.Select(l => l.Welcome).ToArray()), 22, y, W - 44, one ? 56 : 44);
+            var title = Ui.MakeLabel(string.Join("   ", langs.Select(l => Brand.Title(l.Code) ?? l.Welcome).ToArray()), 22, y, W - 44, one ? 56 : 44);
             title.Font = new Font("Segoe UI Semibold", one ? 28f : 20f);
+            while (title.Font.Size > 12f && TextRenderer.MeasureText(title.Text, title.Font).Width > title.Width)    // lange Überschriften
+                title.Font = new Font("Segoe UI Semibold", title.Font.Size - 1f);
             Controls.Add(title);
             y += one ? 66 : 54;
 
@@ -1288,6 +1341,7 @@ namespace GaesteSchutz
         // bleibt das Windows-Standardbild (das Gast-Konto entsteht erst nach dem Klick).
         // ======================================================================
         public const string LogoPic = "*FreshGuest*";
+        public const string BrandPic = "*Marke*";       // Bild der persönlichen Fassung (Marke.cs)
         const string PicTask = "FreshGuest-Profilbild";
         static readonly int[] PicSizes = { 32, 40, 48, 64, 96, 192, 208, 240, 424, 448, 1080 };
         // Alte Version: diese Windows-Standardbilder wurden überschrieben (Originale in PicBackup)
@@ -1318,6 +1372,7 @@ namespace GaesteSchutz
         {
             Image img;
             if (source == LogoPic) img = LogoImage();
+            else if (source == BrandPic) img = Brand.Picture() ?? LogoImage();
             else using (Image tmp = Image.FromFile(source)) img = new Bitmap(tmp);   // Kopie: Datei bleibt nicht gesperrt
             using (img)
             {
@@ -1453,7 +1508,8 @@ try {
 
         public static void ApplyPicture(Store store, string source, Action<string> log)
         {
-            string stored = source == LogoPic ? LogoPic : Path.Combine(Sys.DataDir, "Profilbild.png");
+            bool builtin = source == LogoPic || source == BrandPic;
+            string stored = builtin ? source : Path.Combine(Sys.DataDir, "Profilbild.png");
             using (Bitmap pic = LoadPicture(source))
             {
                 if (Program.Demo)
@@ -1469,7 +1525,7 @@ try {
                     Directory.CreateDirectory(PicDir);
                     foreach (int n in PicSizes)
                         using (Bitmap b = Scaled(pic, n)) SaveJpeg(b, Path.Combine(PicDir, "Image" + n + ".jpg"));
-                    if (stored != LogoPic) pic.Save(stored, System.Drawing.Imaging.ImageFormat.Png);
+                    if (!builtin) pic.Save(stored, System.Drawing.Imaging.ImageFormat.Png);
                     File.WriteAllText(PicScript, PicScriptContent, new System.Text.UTF8Encoding(false));
                     string tr = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \\\"" + PicScript + "\\\"";
                     int rc = Sys.RunQuiet("schtasks.exe", "/Create /F /TN \"" + PicTask + "\" /SC ONLOGON /RU SYSTEM /RL HIGHEST /TR \"" + tr + "\"");

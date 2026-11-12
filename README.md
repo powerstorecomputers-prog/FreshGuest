@@ -54,11 +54,12 @@ Commercial use is explicitly allowed (see [License](#license)).
 
 All settings apply to guests only – your own account stays as it is.
 
-- **Browser** – Edge and Chrome without first-run wizards, password saving or “make default” prompts; desktop icons and a fixed start page. Both follow the guest's Windows language (Firefox stays in its install language, so it gets no icon); the browsers' own icons on the shared desktop are moved away so guests see each browser only once
+- **Browser** – Edge and Chrome without first-run wizards, password saving or “make default” prompts; desktop icons and a fixed start page. Both follow the guest's Windows language (Firefox stays in its install language, so it gets no icon); with a fixed start page, Edge and Chrome always get their “Internet (…)” icon (the only way they open it)
 - **Wallpaper** and **profile picture** for guests – the picture also replaces the grey question-mark figure on the “Guest” tile of the sign-in screen
-- **Desktop** – files, programs and links every new guest finds on the desktop
+- **Desktop** – files, programs and links every new guest finds on the desktop; every program appears only once, even if it is also on the shared desktop (your account keeps its icons)
 - **Autostart** – open a page or program when a guest signs in
 - **Welcome window** – Wi-Fi name and password; check-out, contact, an extra field of your choice and your own text, each per language (German, Italian, English, Spanish, French, plus one more language of your choice)
+- **Fast start** – the flags and the welcome window appear right after sign-in: no startup delay, no first sign-in animation and no Start menu popping up over them
 - **Automatic** – shut the PC down when nobody has touched mouse or keyboard for a set time (15 min – 4 h; never while someone is working or a video is playing, and only after a 60-second “Still there?”), restart daily at a fixed time, show a notice that the PC is reset after every guest
 - **Locks & printer** – lock Control Panel / Settings, command prompt, registry editor, installing programs and running programs from Downloads; default printer for guests
 - **Language** – the Windows display language for guests, chosen from the language packs installed on the PC (otherwise guests get the language Windows was installed with); optionally guests first see only flag buttons (German, Italian, English, Spanish – plus French if its language pack is installed) – after picking one, the PC signs out briefly and back in, and the welcome window appears in that language only
@@ -120,6 +121,13 @@ Full rebuild including logo, screenshots and guide:
 4. `powershell -ExecutionPolicy Bypass -File anleitung\bauen.ps1` – builds `FreshGuest-Anleitung.html` (template `anleitung\vorlage.html`, images embedded)
 5. `src\build.cmd` again – now with the guide embedded
 
+**Personal edition** (e.g. for your own holiday flat): `src\build.cmd <name>` builds `FreshGuest-<name>.exe` with the files from
+`marke\<name>\` – `marke.txt` (`Zeile=` a line shown at the top of the guest windows, `Titel_de=` … welcome headings,
+`Vorgabe.W_…=` default welcome texts), `logo.png` (small round logo next to that line) and `profilbild.png` (an extra profile
+picture choice). The `marke\` folder is git-ignored, so personal details never end up in the repo – see `src\Marke.cs`.
+Without these files the normal `FreshGuest.exe` is built. (Remember: modified versions you pass on must not be called
+“FreshGuest” – see [License](#license).)
+
 ## Project layout
 
 | Path | Contents |
@@ -127,6 +135,8 @@ Full rebuild including logo, screenshots and guide:
 | `src\` | C# WinForms source, manifest, `build.cmd` |
 | `src\Anmeldung.cs` | Sign-in screen: selects the “Guest” tile, “Guest only” mode with Ctrl + Alt + F |
 | `src\Kachelbild.cs` | Guest profile picture on the “Guest” tile of the sign-in screen |
+| `src\Sprache.cs`, `src\Sprachwahl.cs` | Windows language for guests, language choice with flags |
+| `src\Marke.cs` | Optional personal edition (own line, logo, texts) |
 | `GaestePC.ps1` | PowerShell script that does the system work (embedded in the exe) |
 | `1-…`, `2-…`, `3-….cmd` | Run the script directly without the UI (status / set up / undo) |
 | `werkzeuge\` | Reset tool for leftovers of old versions |

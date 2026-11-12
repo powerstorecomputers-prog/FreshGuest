@@ -29,3 +29,6 @@ desktop.ini
 
 # Test-Skripte aus der Entwicklung (nicht veroeffentlichen)
 alt-tests/
+
+# Persönliche Fassungen (Name, Logo) – nicht veröffentlichen, siehe src\Marke.cs
+marke/

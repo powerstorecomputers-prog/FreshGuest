@@ -41,8 +41,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("PC für Feriengäste: Gast-Daten werden beim Neustart gelöscht")]
 [assembly: AssemblyCompany("PowerStore Computers")]
 [assembly: AssemblyCopyright("© 2026 PowerStore Computers")]
-[assembly: AssemblyVersion("1.26.0.0")]
-[assembly: AssemblyFileVersion("1.26.0.0")]
+[assembly: AssemblyVersion("1.27.0.0")]
+[assembly: AssemblyFileVersion("1.27.0.0")]
 
 namespace GaesteSchutz
 {
@@ -73,7 +73,7 @@ namespace GaesteSchutz
     static class Program
     {
         public const string Name = "FreshGuest";
-        public const string Version = "1.26";
+        public const string Version = "1.27";
         public const string Copyright = "© 2026 PowerStore Computers";
         public static bool Demo;
         public static bool CleanShots;   // Bilder für die Anleitung: ohne DEMO-Hinweise
@@ -720,6 +720,8 @@ namespace GaesteSchutz
             if (browser != BrowserOpt.None)     // bis 1.7 in HKLM (galt auch für dein Konto) -> jetzt nur Gäste
                 try { BrowserSetup.Apply(store, browser, store.Get("Startseite"), l => log.AppendLine(l)); }
                 catch (Exception ex) { log.AppendLine("Browser: " + ex.Message); }
+            try { BrowserSetup.SyncPublicDuplicates(store, l => log.AppendLine(l)); store.Save(); }      // ab 1.27: jedes Programm nur einmal
+            catch (Exception ex) { log.AppendLine("Desktop: " + ex.Message); }
         }
 
         // Kopiert diese exe über die installierte (nur wenn sie von woanders gestartet wurde)
@@ -969,7 +971,7 @@ namespace GaesteSchutz
             {
                 string target = GuestExtras.ShortcutTarget(lnk);
                 if (string.IsNullOrEmpty(target)) continue;
-                string exe = exes.FirstOrDefault(x => string.Equals(Path.GetFileName(x), Path.GetFileName(target), StringComparison.OrdinalIgnoreCase));
+                string exe = exes.FirstOrDefault(x => SameProgram(x, target));
                 if (exe == null) continue;
                 string name = Path.GetFileName(lnk);
                 try
@@ -984,7 +986,7 @@ namespace GaesteSchutz
                     File.Delete(lnk);
                     if (!moved.Contains(name)) moved.Add(name);
                     hidden.Add(Path.GetFileNameWithoutExtension(name));
-                    if (exe == EdgeExe) edge = true;
+                    if (Path.GetFileName(target).Equals("msedge.exe", StringComparison.OrdinalIgnoreCase)) edge = true;
                 }
                 catch (Exception ex) { log("  " + name + ": " + ex.Message); }
             }
@@ -1008,8 +1010,91 @@ namespace GaesteSchutz
                         "✔ Duplicate icons removed from the shared desktop (your account keeps them): ") + string.Join(", ", hidden.ToArray()));
         }
 
+        static string NormPath(string p)
+        {
+            try { return Path.GetFullPath(Environment.ExpandEnvironmentVariables(p ?? "")).TrimEnd('\\'); } catch { return p ?? ""; }
+        }
+
+        static bool SameProgram(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
+            if (string.Equals(NormPath(a), NormPath(b), StringComparison.OrdinalIgnoreCase)) return true;
+            string fa = Path.GetFileName(a), fb = Path.GetFileName(b);
+            return string.Equals(fa, fb, StringComparison.OrdinalIgnoreCase) &&
+                   (fa.Equals("chrome.exe", StringComparison.OrdinalIgnoreCase) || fa.Equals("msedge.exe", StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Verknüpfungen auf dem Desktop der Gäste (Standardprofil): Name -> Ziel
+        static List<KeyValuePair<string, string>> GuestDesktopLinks()
+        {
+            var l = new List<KeyValuePair<string, string>>();
+            try
+            {
+                if (Directory.Exists(GuestDesktop))
+                    foreach (string f in Directory.GetFiles(GuestDesktop, "*.lnk"))
+                    {
+                        string t = GuestExtras.ShortcutTarget(f);
+                        if (!string.IsNullOrEmpty(t)) l.Add(new KeyValuePair<string, string>(Path.GetFileName(f), t));
+                    }
+            }
+            catch { }
+            return l;
+        }
+
+        static string GuestBackup { get { return Path.Combine(PublicBackup, "Gast-Desktop"); } }
+
+        // Jedes Programm soll beim Gast nur EINMAL auf dem Desktop sein. Der Gast sieht den gemeinsamen Desktop UND
+        // den Desktop des Standardprofils (Reiter „Desktop“ + „Internet (…)“). Doppelte vom gemeinsamen Desktop kommen
+        // in die Sicherung (dein Konto behält eine Kopie); eine zweite Verknüpfung zu Edge/Chrome neben „Internet (…)“
+        // ebenso. Läuft nach jeder Änderung am Desktop oder an den Browser-Einstellungen und beim Aktualisieren.
+        public static void SyncPublicDuplicates(Store store, Action<string> log)
+        {
+            if (Program.Demo) return;
+            if (log == null) log = s => { };
+            RestorePublicDuplicates(store);
+            var links = GuestDesktopLinks();
+            // 1) Auf dem Gast-Desktop selbst: neben „Internet (Edge/Chrome)“ keine zweite Verknüpfung zum selben Browser
+            var ours = links.Where(kv => LnkNames.Contains(kv.Key, StringComparer.OrdinalIgnoreCase)).ToList();
+            var movedGuest = new List<string>();
+            foreach (var kv in links)
+            {
+                if (LnkNames.Contains(kv.Key, StringComparer.OrdinalIgnoreCase)) continue;
+                if (!ours.Any(o => SameProgram(o.Value, kv.Value))) continue;
+                try
+                {
+                    Directory.CreateDirectory(GuestBackup);
+                    File.Copy(Path.Combine(GuestDesktop, kv.Key), Path.Combine(GuestBackup, kv.Key), true);
+                    File.Delete(Path.Combine(GuestDesktop, kv.Key));
+                    movedGuest.Add(kv.Key);
+                }
+                catch (Exception ex) { log("  " + kv.Key + ": " + ex.Message); }
+            }
+            if (movedGuest.Count > 0)
+            {
+                store.Set("GastSymboleVerschoben", string.Join("|", movedGuest.ToArray()));
+                log(L.T("✔ Schon als „Internet (…)“ da – nicht doppelt auf den Gast-Desktop: ",
+                        "✔ Già presente come «Internet (…)» – non doppio sul desktop ospiti: ",
+                        "✔ Already there as \"Internet (…)\" – not twice on the guest desktop: ") +
+                    string.Join(", ", movedGuest.Select(n => Path.GetFileNameWithoutExtension(n)).ToArray()));
+            }
+            // 2) Gemeinsamer Desktop: alles, was es auf dem Gast-Desktop schon gibt
+            var targets = links.Where(kv => !movedGuest.Contains(kv.Key)).Select(kv => kv.Value).ToList();
+            HidePublicDuplicates(store, targets, log);
+        }
+
         static void RestorePublicDuplicates(Store store)
         {
+            foreach (string name in Names(store, "GastSymboleVerschoben"))      // Gast-Desktop: zurück
+                try
+                {
+                    string bak = Path.Combine(GuestBackup, name), dst = Path.Combine(GuestDesktop, name);
+                    if (!File.Exists(bak)) continue;
+                    if (!File.Exists(dst)) File.Copy(bak, dst);
+                    File.Delete(bak);
+                }
+                catch { }
+            store.Remove("GastSymboleVerschoben");
+            try { if (Directory.Exists(GuestBackup) && !Directory.EnumerateFileSystemEntries(GuestBackup).Any()) Directory.Delete(GuestBackup); } catch { }
             string mine = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             foreach (string name in Names(store, "SymboleVerschoben"))
                 try
@@ -1087,12 +1172,8 @@ namespace GaesteSchutz
                             k.SetValue(v.Name, v.Data, v.Kind);
                 });
             }
-            List<string> exes = MakeShortcuts(o, url, log);
-            if (!Program.Demo)
-            {
-                RestorePublicDuplicates(store);
-                HidePublicDuplicates(store, exes, log);
-            }
+            MakeShortcuts(o, url, log);
+            SyncPublicDuplicates(store, log);
             if ((o & BrowserOpt.NoWelcome) != 0) log(L.T("✔ Kein Willkommensassistent", "✔ Nessuna procedura di benvenuto", "✔ No welcome wizard"));
             if ((o & BrowserOpt.NoPasswords) != 0) log(L.T("✔ Kennwörter werden nicht gespeichert", "✔ Le password non vengono salvate", "✔ Passwords are not saved"));
             if ((o & BrowserOpt.NoDefaultPrompt) != 0) log(L.T("✔ Keine Standardbrowser-Frage", "✔ Nessuna richiesta browser predefinito", "✔ No default-browser prompt"));
@@ -1117,7 +1198,7 @@ namespace GaesteSchutz
                 ClearMachine();
                 ClearShortcuts();
                 GuestExtras.WithDefaultHive(ClearHive);
-                RestorePublicDuplicates(store);
+                SyncPublicDuplicates(store, null);       // Browser-Symbole weg – Doppelte vom Reiter „Desktop“ bleiben versteckt
             }
             store.Set("BrowserAktiv", "0");
             if (log != null) log(L.T("Browser-Einstellungen für Gäste entfernt.", "Impostazioni browser per gli ospiti rimosse.",
@@ -2284,7 +2365,7 @@ namespace GaesteSchutz
                 "Your own profile picture for every guest – in the Start menu once the guest is signed in. For example a photo of your holiday flat."), 12, 44);
             chkPic = AddCheck(t, L.T("Eigenes Profilbild für Gäste", "Immagine del profilo personalizzata per gli ospiti", "Custom profile picture for guests"),
                 62, GuestExtras.PictureOn(store));
-            PicSource = store.Get("Profilbild") ?? GuestExtras.LogoPic;     // Vorschlag: das Pinguin-Logo
+            PicSource = store.Get("Profilbild") ?? (Brand.HasPicture ? GuestExtras.BrandPic : GuestExtras.LogoPic);   // Vorschlag: eigenes Logo bzw. Pinguin
             picPreview = new CirclePicture { Location = new Point(34, 98), Size = new Size(160, 160) };
             t.Controls.Add(picPreview);
             btnPicFile = Ui.MakeButton(L.T("Bild wählen …", "Scegli immagine …", "Choose picture …"), 214, 108, 180, 32, false);
@@ -2293,8 +2374,16 @@ namespace GaesteSchutz
             btnPicLogo.Click += (s, e) => { PicSource = GuestExtras.LogoPic; ShowPicture(); };
             t.Controls.Add(btnPicFile);
             t.Controls.Add(btnPicLogo);
+            int noteY = 192;
+            if (Brand.HasPicture)        // persönliche Fassung: eigenes Logo zur Wahl
+            {
+                btnPicBrand = Ui.MakeButton(Brand.PictureName, 214, 188, 180, 32, false);
+                btnPicBrand.Click += (s, e) => { PicSource = GuestExtras.BrandPic; ShowPicture(); };
+                t.Controls.Add(btnPicBrand);
+                noteY = 228;
+            }
             var note = AddInfo(t, L.T("Ein Foto wird in der Mitte quadratisch zugeschnitten.", "Una foto viene ritagliata al centro in formato quadrato.",
-                "A photo is cropped to a square in the middle."), 192, 44);
+                "A photo is cropped to a square in the middle."), noteY, 44);
             note.Left = 212; note.Width = 294;
             AddInfo(t, L.T(
                 "Dein eigenes Konto bleibt unverändert. Das Bild erscheint auch auf der Kachel „Guest“ am Anmeldebildschirm (statt der Figur mit dem Fragezeichen).",
@@ -2305,7 +2394,12 @@ namespace GaesteSchutz
             UpdatePicEnabled();
         }
 
-        void UpdatePicEnabled() { picPreview.Enabled = btnPicFile.Enabled = btnPicLogo.Enabled = chkPic.Checked; }
+        Button btnPicBrand;
+        void UpdatePicEnabled()
+        {
+            picPreview.Enabled = btnPicFile.Enabled = btnPicLogo.Enabled = chkPic.Checked;
+            if (btnPicBrand != null) btnPicBrand.Enabled = chkPic.Checked;
+        }
 
         void ShowPicture()
         {
@@ -2409,8 +2503,11 @@ namespace GaesteSchutz
                 "Una finestra per ogni ospite dopo l'accesso.",
                 "One window for every guest after sign-in."), 12, 22);
             editInfo = GuestExtras.WelcomeFromStore(store);
+            // Persönliche Fassung: beim ersten Einrichten leere Felder mit den Vorgaben füllen (WLAN-Name, Check-out, Texte)
+            bool brandFresh = Brand.HasDefaults && store.Get("MarkeVorgaben") == null;
+            if (brandFresh) Brand.ApplyDefaults(editInfo);
             chkWelcome2 = AddCheck(t, L.T("Willkommensfenster beim Anmelden zeigen", "Mostra la finestra di benvenuto all'accesso",
-                "Show welcome window at sign-in"), 38, GuestExtras.WelcomeOn(store));
+                "Show welcome window at sign-in"), 38, GuestExtras.WelcomeOn(store) || brandFresh);
             txtWlan = WelcomeRow(t, L.T("WLAN-Name:", "Nome Wi-Fi:", "Wi-Fi name:"), 68, editInfo.Wlan);
             txtWlanPw = WelcomeRow(t, L.T("WLAN-Kennwort:", "Password Wi-Fi:", "Wi-Fi password:"), 98, editInfo.WlanPw);
 
@@ -3233,7 +3330,8 @@ namespace GaesteSchutz
                 "   " + L.T("Sprachwahl: ", "Scelta lingua: ", "Language choice: ") + (GuestExtras.ChoiceOn(store) ? L.T("an", "sì", "on") : aus));
             Log(L.T("Täglicher Neustart: ", "Riavvio giornaliero: ", "Daily restart: ") + (GuestExtras.RestartTime(store) ?? aus));
             Log(L.T("Profilbild Gäste: ", "Immagine profilo ospiti: ", "Guest profile picture: ") +
-                (GuestExtras.PictureOn(store) ? (store.Get("Profilbild") == GuestExtras.LogoPic ? L.T("Pinguin-Logo", "logo pinguino", "penguin logo") : L.T("eigenes Bild", "immagine propria", "own picture")) : aus));
+                (GuestExtras.PictureOn(store) ? (store.Get("Profilbild") == GuestExtras.LogoPic ? L.T("Pinguin-Logo", "logo pinguino", "penguin logo") :
+                    store.Get("Profilbild") == GuestExtras.BrandPic ? Brand.PictureName : L.T("eigenes Bild", "immagine propria", "own picture")) : aus));
             Log(L.T("Sperren Gäste: ", "Blocchi ospiti: ", "Guest locks: ") + (GuestExtras.Locks(store) != 0 ? GuestExtras.Locks(store).ToString() : aus) +
                 "   " + L.T("Drucker: ", "Stampante: ", "Printer: ") + (GuestExtras.GuestPrinter(store) ?? aus));
             SetBusy(false, null);
@@ -3373,6 +3471,14 @@ namespace GaesteSchutz
     // ------------------------------------------------------------------
     static class Snapshots
     {
+        // Willkommen für die Bilder: in der persönlichen Fassung mit deren Vorgaben
+        static WelcomeInfo DemoWelcome(Store st)
+        {
+            WelcomeInfo w = GuestExtras.WelcomeFromStore(st);
+            if (Brand.HasDefaults) Brand.ApplyDefaults(w);
+            return w;
+        }
+
         public static void Run(string dir)
         {
             Program.CleanShots = true;
@@ -3417,6 +3523,8 @@ namespace GaesteSchutz
                 st.Set("W_Text", "Schönen Urlaub in Südtirol!"); st.Set("W_Text_it", "Buone vacanze in Alto Adige!"); st.Set("W_Text_en", "Enjoy your holiday in South Tyrol!");
                 st.Set("W_Checkout_es", "10:00 h"); st.Set("W_ExtraName_es", "Aparcamiento"); st.Set("W_Extra_es", "n.º 12 en el patio"); st.Set("W_Text_es", "¡Felices vacaciones en el Tirol del Sur!");
                 st.Set("W_Checkout_fr", "10h00"); st.Set("W_ExtraName_fr", "Parking"); st.Set("W_Extra_fr", "n° 12 dans la cour"); st.Set("W_Text_fr", "Bonnes vacances au Tyrol du Sud !"); st.Set("Sprache4", "nl-NL"); st.Set("W_Checkout_nl", "10.00 uur"); st.Set("W_Text_nl", "Fijne vakantie in Zuid-Tirol!");
+                if (Brand.HasDefaults)      // persönliche Fassung: Bilder mit deren Vorgaben statt der Beispieltexte
+                    foreach (string n in st.Keys) if (n.StartsWith("W_") && n != "W_WLANKennwort") st.Remove(n);
                 st.Set("AbmeldenMin", "60");
                 st.Set("NeustartZeit", "04:00");
                 st.Set("Sperren", "1");
@@ -3431,19 +3539,19 @@ namespace GaesteSchutz
                 Shot(new SettingsForm(st, 8), Path.Combine(dir, "16-einstellungen-anmeldung" + sfx + ".png"));
                 st.Set("GastSprache", "en-US");
                 Shot(new SettingsForm(st, 9), Path.Combine(dir, "18-einstellungen-sprache" + sfx + ".png"));
-                st.Set("Profilbild", GuestExtras.LogoPic);
+                st.Set("Profilbild", Brand.HasPicture ? GuestExtras.BrandPic : GuestExtras.LogoPic);
                 Shot(new SettingsForm(st, 2), Path.Combine(dir, "15-einstellungen-profilbild" + sfx + ".png"));
-                Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false), Path.Combine(dir, "13-gast-willkommen" + sfx + ".png"));
+                Shot(new WelcomeForm(DemoWelcome(st), false), Path.Combine(dir, "13-gast-willkommen" + sfx + ".png"));
                 Shot(new IdleWarnForm(""), Path.Combine(dir, "14-gast-noch-da" + sfx + ".png"));
                 Shot(new NoticeForm(60, "04:00", false, null, false), Path.Combine(dir, "17-gast-hinweis" + sfx + ".png"));
                 Shot(new LanguageForm(false), Path.Combine(dir, "19-gast-sprachwahl" + sfx + ".png"));
-                Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false, code == "de" ? "it" : code == "it" ? "de" : "es"),
+                Shot(new WelcomeForm(DemoWelcome(st), false, code == "de" ? "it" : code == "it" ? "de" : "es"),
                     Path.Combine(dir, "20-gast-willkommen-eine-sprache" + sfx + ".png"));
                 if (code == "en")       // nur zur Kontrolle (nicht in der Anleitung): Französisch nach der Sprachwahl
-                    Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false, "fr"), Path.Combine(dir, "21-gast-willkommen-fr.png"));
+                    Shot(new WelcomeForm(DemoWelcome(st), false, "fr"), Path.Combine(dir, "21-gast-willkommen-fr.png"));
                 if (code == "en")
                 {
-                    Shot(new WelcomeForm(GuestExtras.WelcomeFromStore(st), false, "nl"), Path.Combine(dir, "22-gast-willkommen-nl.png"));
+                    Shot(new WelcomeForm(DemoWelcome(st), false, "nl"), Path.Combine(dir, "22-gast-willkommen-nl.png"));
                     Shot(new ExtraLangForm(new List<string> { "nl-NL", "pl-PL" }, "nl-NL"), Path.Combine(dir, "23-weitere-sprache.png"));
                 }
 

@@ -189,8 +189,9 @@ if ($LASTEXITCODE -eq 0) {
         foreach ($v in 'Wallpaper', 'WallpaperStyle', 'DisableRegistryTools', 'DisableCMD') { Remove-ItemProperty $sysU -Name $v -ErrorAction SilentlyContinue }
         Remove-ItemProperty "$r\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name NoControlPanel -ErrorAction SilentlyContinue
         foreach ($v in 'Device', 'LegacyDefaultPrinterMode') { Remove-ItemProperty "$r\Software\Microsoft\Windows NT\CurrentVersion\Windows" -Name $v -ErrorAction SilentlyContinue }
-        if ("$($cfg.SchnellStart)" -eq '1') {
+        if ("$($cfg.SchnellStart)" -ne '') {
             foreach ($v in 'StartupDelayInMSec', 'WaitForIdleState') { Remove-ItemProperty "$r\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize" -Name $v -ErrorAction SilentlyContinue }
+            Remove-ItemProperty "$r\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name StartShownOnUpgrade -ErrorAction SilentlyContinue
             L 'Standardprofil: Autostart-Verzoegerung wieder Windows-Standard'
         }
         L 'Standardprofil: Hintergrund, Sperren, Drucker zurueckgesetzt'

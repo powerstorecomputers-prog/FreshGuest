@@ -660,7 +660,7 @@ namespace GaesteSchutz
             else TopMost = true;
             Text = L.AppName + (preview ? "  (" + L.T("Vorschau", "Anteprima", "Preview") + ")" : "");
             int lockupRight;
-            Logo.MakeHeader(this, 78, out lockupRight);
+            Brand.AddToHeader(Logo.MakeHeader(this, 78, out lockupRight), lockupRight);
 
             int y = 98;
             var shown = langs.Select(t => GuestTexts.Find(GuestSwitch.LangOf(t) ?? "en") ?? GuestTexts.All[0]).ToList();
