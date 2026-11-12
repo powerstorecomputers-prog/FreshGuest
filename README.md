@@ -9,11 +9,11 @@
 
 <p align="center"><b>⚠️ Requires Windows 11 Pro.</b> Windows Home does not work.</p>
 
-> 🇬🇧 **English:** FreshGuest sets up a Windows PC for guests. On the sign-in screen guests just click “Sign in”; when they sign out or the PC restarts, Windows deletes everything they left behind. **Windows 11 Pro only** – it does not work with Windows Home. Fits holiday flats, hotels, internet cafés, libraries, waiting rooms and anywhere strangers use the same PC one after another. The full guide (DE/IT/EN) is built into the program and comes with every [release](../../releases).
+> 🇬🇧 **English:** FreshGuest sets up a Windows PC for guests. On the sign-in screen guests just click “Sign in”; when they sign out or the PC restarts, Windows deletes everything they left behind. Guests can **pick their language with a flag** – Windows and the welcome window then appear in that language. **Windows 11 Pro only** – it does not work with Windows Home. Fits holiday flats, hotels, internet cafés, libraries, waiting rooms and anywhere strangers use the same PC one after another. The full guide (DE/IT/EN) is built into the program and comes with every [release](../../releases).
 >
-> 🇩🇪 **Deutsch:** FreshGuest richtet einen Windows-PC für Feriengäste ein. Gäste klicken auf dem Anmeldebildschirm nur auf „Anmelden“; beim Abmelden oder Neustart löscht Windows alles, was der Gast hinterlassen hat. **Nur für Windows 11 Pro** – mit Windows Home funktioniert es nicht. Passt für Ferienwohnungen, Hotels, Internetcafés, Bibliotheken, Wartezimmer und überall, wo Fremde nacheinander am selben PC sitzen. Die ausführliche Anleitung (DE/IT/EN) steckt im Programm und liegt jedem [Release](../../releases) bei.
+> 🇩🇪 **Deutsch:** FreshGuest richtet einen Windows-PC für Feriengäste ein. Gäste klicken auf dem Anmeldebildschirm nur auf „Anmelden“; beim Abmelden oder Neustart löscht Windows alles, was der Gast hinterlassen hat. Gäste können ihre **Sprache per Flagge wählen** – Windows und das Willkommensfenster erscheinen dann in dieser Sprache. **Nur für Windows 11 Pro** – mit Windows Home funktioniert es nicht. Passt für Ferienwohnungen, Hotels, Internetcafés, Bibliotheken, Wartezimmer und überall, wo Fremde nacheinander am selben PC sitzen. Die ausführliche Anleitung (DE/IT/EN) steckt im Programm und liegt jedem [Release](../../releases) bei.
 >
-> 🇮🇹 **Italiano:** FreshGuest prepara un PC Windows per gli ospiti. Gli ospiti cliccano solo su «Accedi» nella schermata di accesso; alla disconnessione o al riavvio Windows cancella tutto ciò che hanno lasciato. **Solo per Windows 11 Pro** – con Windows Home non funziona. Adatto a case vacanze, hotel, internet café, biblioteche, sale d'attesa e ovunque persone diverse usino lo stesso PC una dopo l'altra. La guida completa (DE/IT/EN) è inclusa nel programma e in ogni [release](../../releases).
+> 🇮🇹 **Italiano:** FreshGuest prepara un PC Windows per gli ospiti. Gli ospiti cliccano solo su «Accedi» nella schermata di accesso; alla disconnessione o al riavvio Windows cancella tutto ciò che hanno lasciato. Gli ospiti possono **scegliere la lingua con una bandiera** – Windows e la finestra di benvenuto appaiono allora in quella lingua. **Solo per Windows 11 Pro** – con Windows Home non funziona. Adatto a case vacanze, hotel, internet café, biblioteche, sale d'attesa e ovunque persone diverse usino lo stesso PC una dopo l'altra. La guida completa (DE/IT/EN) è inclusa nel programma e in ogni [release](../../releases).
 
 ---
 
@@ -35,6 +35,21 @@ Every window the guest sees is shown in **German, Italian, English and Spanish a
 who is sitting at the PC:
 
 ![Welcome window for guests](bilder/13-gast-willkommen-en.png)
+
+## 🌍 Guests pick their language with a flag
+
+The highlight for international guests: switch on **language choice** and every guest first sees only the flags.
+One tap and **all of Windows** – Start menu, settings, Edge and Chrome – plus your welcome window switch to that
+language. The PC signs out briefly and back in by itself; the guest doesn't have to set anything up.
+
+![Language choice with flags at sign-in](bilder/19-gast-sprachwahl-en.png)
+
+- **German, Italian, English and Spanish** – **French** is added automatically when its language pack is installed
+- **One more language of your choice** with the **“+”** button, e.g. Dutch or Polish – from the language packs installed on the PC
+- The welcome window then shows **only that language**, with your own texts for it (Wi-Fi, check-out, contact, house rules …);
+  “Other language” brings the flags back
+
+![Welcome window in the chosen language only](bilder/20-gast-willkommen-eine-sprache-en.png)
 
 ## Where it fits
 
@@ -62,7 +77,7 @@ All settings apply to guests only – your own account stays as it is.
 - **Fast start** – the flags and the welcome window appear right after sign-in: no startup delay, no first sign-in animation and no Start menu popping up over them
 - **Automatic** – shut the PC down when nobody has touched mouse or keyboard for a set time (15 min – 4 h; never while someone is working or a video is playing, and only after a 60-second “Still there?”), restart daily at a fixed time, show a notice that the PC is reset after every guest
 - **Locks & printer** – lock Control Panel / Settings, command prompt, registry editor, installing programs and running programs from Downloads; default printer for guests
-- **Language** – the Windows display language for guests, chosen from the language packs installed on the PC (otherwise guests get the language Windows was installed with); optionally guests first see only flag buttons (German, Italian, English, Spanish – plus French if its language pack is installed) – after picking one, the PC signs out briefly and back in, and the welcome window appears in that language only
+- **Language** – the Windows display language for guests, chosen from the language packs installed on the PC (otherwise guests get the language Windows was installed with); optionally guests first see only flag buttons (German, Italian, English, Spanish – plus French if its language pack is installed, plus one more language added with “+”; see [above](#-guests-pick-their-language-with-a-flag)) – after picking one, the PC signs out briefly and back in, and the welcome window appears in that language only
 - **Sign-in** – “Guest” is selected automatically; optionally show **only** “Guest” and reach your own account with **Ctrl + Alt + F** on the sign-in screen
 
 | | |
