@@ -41,8 +41,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("PC für Feriengäste: Gast-Daten werden beim Neustart gelöscht")]
 [assembly: AssemblyCompany("PowerStore Computers")]
 [assembly: AssemblyCopyright("© 2026 PowerStore Computers")]
-[assembly: AssemblyVersion("1.28.0.0")]
-[assembly: AssemblyFileVersion("1.28.0.0")]
+[assembly: AssemblyVersion("1.29.0.0")]
+[assembly: AssemblyFileVersion("1.29.0.0")]
 
 namespace GaesteSchutz
 {
@@ -73,7 +73,7 @@ namespace GaesteSchutz
     static class Program
     {
         public const string Name = "FreshGuest";
-        public const string Version = "1.28";
+        public const string Version = "1.29";
         public const string Copyright = "© 2026 PowerStore Computers";
         public static bool Demo;
         public static bool CleanShots;   // Bilder für die Anleitung: ohne DEMO-Hinweise
@@ -930,7 +930,13 @@ namespace GaesteSchutz
                 catch (Exception ex) { log("  " + name + ": " + ex.Message); }
             };
             one("Edge", EdgeExe, EdgeLnk, true);
-            one("Chrome", ChromeExe, ChromeLnk, true);
+            // Chrome bekommt seit 1.29 kein „Internet (Chrome)“ mehr: Fehlt sein eigenes Symbol auf dem gemeinsamen
+            // Desktop, legt Chrome beim ersten Start jedes Gastes „Google Chrome“ selbst wieder an (Test am Gäste-PC).
+            // Also bleibt sein eigenes Symbol – ohne feste Startseite (die erlaubt Chrome auf privaten PCs nur so).
+            if (ChromeExe == null) missing.Add("Chrome");
+            else log(L.T("  Chrome behält sein eigenes Symbol „Google Chrome“ (sonst legt Chrome es bei jedem Gast neu an) – die feste Startseite gilt nur für Edge.",
+                         "  Chrome mantiene la sua icona «Google Chrome» (altrimenti Chrome la ricrea per ogni ospite) – la pagina iniziale fissa vale solo per Edge.",
+                         "  Chrome keeps its own \"Google Chrome\" icon (otherwise Chrome recreates it for every guest) – the fixed start page applies to Edge only."));
             if (made.Count > 0)
                 log(L.T("✔ Symbole auf dem Desktop der Gäste: ", "✔ Icone sul desktop degli ospiti: ", "✔ Icons on the guests' desktop: ") +
                     string.Join(", ", made.Select(n => "Internet (" + n + ")").ToArray()));
@@ -971,6 +977,7 @@ namespace GaesteSchutz
             {
                 string target = GuestExtras.ShortcutTarget(lnk);
                 if (string.IsNullOrEmpty(target)) continue;
+                if (IsChrome(target)) continue;          // Chromes eigenes Symbol bleibt (siehe MakeShortcuts)
                 string exe = exes.FirstOrDefault(x => SameProgram(x, target));
                 if (exe == null) continue;
                 string name = Path.GetFileName(lnk);
@@ -1014,6 +1021,8 @@ namespace GaesteSchutz
         {
             try { return Path.GetFullPath(Environment.ExpandEnvironmentVariables(p ?? "")).TrimEnd('\\'); } catch { return p ?? ""; }
         }
+
+        static bool IsChrome(string target) { return Path.GetFileName(target ?? "").Equals("chrome.exe", StringComparison.OrdinalIgnoreCase); }
 
         internal static bool SameProgram(string a, string b)
         {
@@ -1070,6 +1079,16 @@ namespace GaesteSchutz
             var links = GuestDesktopLinks();
             // 1) Auf dem Gast-Desktop selbst: neben „Internet (Edge/Chrome)“ keine zweite Verknüpfung zum selben Browser
             var ours = links.Where(kv => LnkNames.Contains(kv.Key, StringComparer.OrdinalIgnoreCase)).ToList();
+            try
+            {
+                if (Directory.Exists(PublicDesktop))
+                    foreach (string f in Directory.GetFiles(PublicDesktop, "*.lnk"))
+                    {
+                        string t = GuestExtras.ShortcutTarget(f);
+                        if (IsChrome(t)) ours.Add(new KeyValuePair<string, string>("", t));     // „Google Chrome“ für alle
+                    }
+            }
+            catch { }
             var movedGuest = new List<string>();
             foreach (var kv in links)
             {
@@ -1087,9 +1106,9 @@ namespace GaesteSchutz
             if (movedGuest.Count > 0)
             {
                 store.Set("GastSymboleVerschoben", string.Join("|", movedGuest.ToArray()));
-                log(L.T("✔ Schon als „Internet (…)“ da – nicht doppelt auf den Gast-Desktop: ",
-                        "✔ Già presente come «Internet (…)» – non doppio sul desktop ospiti: ",
-                        "✔ Already there as \"Internet (…)\" – not twice on the guest desktop: ") +
+                log(L.T("✔ Browser schon da – nicht doppelt auf den Gast-Desktop: ",
+                        "✔ Browser già presente – non doppio sul desktop ospiti: ",
+                        "✔ Browser already there – not twice on the guest desktop: ") +
                     string.Join(", ", movedGuest.Select(n => Path.GetFileNameWithoutExtension(n)).ToArray()));
             }
             // 2) Gemeinsamer Desktop: alles, was es auf dem Gast-Desktop schon gibt
@@ -2274,9 +2293,9 @@ namespace GaesteSchutz
             chkStart.CheckedChanged += (s, e) => txtUrl.Enabled = chkStart.Checked;
             txtUrl.Enabled = chkStart.Checked;
             var note = AddInfo(tBrowser, L.T(
-                "Edge und Chrome öffnen die Startseite über ihr Symbol „Internet (…)“ auf dem Desktop. Firefox bekommt kein Symbol (bleibt in einer Sprache).",
-                "Edge e Chrome aprono la pagina iniziale tramite la loro icona «Internet (…)» sul desktop. Firefox non riceve icone (resta in una sola lingua).",
-                "Edge and Chrome open the start page via their \"Internet (…)\" desktop icon. Firefox gets no icon (it stays in one language)."), 268, 40);
+                "Edge öffnet die Startseite über sein Symbol „Internet (Edge)“. Chrome behält sein eigenes Symbol (ohne Startseite), Firefox bekommt keins.",
+                "Edge apre la pagina iniziale tramite l'icona «Internet (Edge)». Chrome mantiene la sua icona (senza pagina iniziale), Firefox nessuna.",
+                "Edge opens the start page via its \"Internet (Edge)\" icon. Chrome keeps its own icon (no start page), Firefox gets none."), 268, 40);
             note.Left = 32; note.Width = 474;
             AddInfo(tBrowser, L.T("Alle Häkchen weg + Übernehmen = Browser-Einstellungen entfernen.",
                 "Togli tutte le spunte + Applica = rimuovi le impostazioni del browser.",
